@@ -1,0 +1,622 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Assign Trainer - {{ customer.profile.user.get_full_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:accounts_customer_changelist' %}">Customers</a>
+    &rsaquo; Assign Trainer to {{ customer.profile.user.get_full_name }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="content-wrapper">
+        <!-- Left Column: Form -->
+        <div class="form-section">
+            <div class="form-card">
+                <div class="card-header">
+                    <h2>Assign Trainer to {{ customer.profile.user.get_full_name }}</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Customer Information -->
+                    <div class="info-section">
+                        <div class="info-row">
+                            <div class="info-col">
+                                <h4>Customer Information</h4>
+                                <div class="info-item">
+                                    <span class="label">Name:</span>
+                                    <span class="value">{{ customer.profile.user.get_full_name }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Email:</span>
+                                    <span class="value">{{ customer.profile.user.email }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Phone:</span>
+                                    <span class="value">{{ customer.profile.phone|default:"Not provided" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Fitness Level:</span>
+                                    <span class="value">{{ customer.fitness_level|title }}</span>
+                                </div>
+                            </div>
+                            <div class="info-col">
+                                <h4>Subscription Details</h4>
+                                {% if customer.subscription %}
+                                    <div class="info-item">
+                                        <span class="label">Plan:</span>
+                                        <span class="value">{{ customer.subscription.plan.name }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="label">Status:</span>
+                                        <span class="status-badge {% if customer.subscription.is_active %}active{% else %}inactive{% endif %}">
+                                            {{ customer.subscription.is_active|yesno:"Active,Expired" }}
+                                        </span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="label">Days Remaining:</span>
+                                        <span class="value">{{ customer.subscription.days_remaining }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="alert-warning">No active subscription</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Assignment -->
+                    {% if current_assignment and current_assignment.is_active %}
+                        <div class="current-assignment">
+                            <h4>Current Assignment</h4>
+                            <div class="assignment-info">
+                                <div class="info-item">
+                                    <span class="label">Trainer:</span>
+                                    <span class="value">{{ current_assignment.trainer_display_name|default:"Not specified" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Assigned:</span>
+                                    <span class="value">{{ current_assignment.assigned_date|date:"F j, Y" }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Notes:</span>
+                                    <span class="value">{{ current_assignment.notes|default:"No notes" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Assignment Form -->
+                    <div class="assignment-form">
+                        <h4>
+                            {% if current_assignment and current_assignment.is_active %}
+                                Update Trainer Assignment
+                            {% else %}
+                                Assign New Trainer
+                            {% endif %}
+                        </h4>
+                        
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <!-- Trainer Selection -->
+                            <div class="form-group">
+                                <label for="id_trainer" class="form-label">Select Trainer:</label>
+                                <select name="trainer" id="id_trainer" class="form-select" required onchange="updateTrainerSelection(this)">
+                                    <option value="">Choose a trainer...</option>
+                                    {% for trainer in available_trainers %}
+                                        <option value="{{ trainer.id }}" 
+                                                data-name="{{ trainer.display_name }}"
+                                                data-clients="{{ trainer.active_clients_count }}"
+                                                data-rating="{{ trainer.average_rating|floatformat:1 }}"
+                                                {% if selected_trainer_id == trainer.id %}selected{% endif %}>
+                                            {{ trainer.display_name }} - {{ trainer.active_clients_count }} clients - {{ trainer.average_rating|floatformat:1 }}★
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div id="selected-trainer-info" class="selected-trainer-info" style="display: none;">
+                                    <div class="trainer-preview">
+                                        <strong id="selected-trainer-name"></strong>
+                                        <span id="selected-trainer-details"></span>
+                                    </div>
+                                </div>
+                                {% if form.trainer.errors %}
+                                    <div class="error-text">{{ form.trainer.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Assignment Notes -->
+                            <div class="form-group">
+                                <label for="id_notes" class="form-label">Assignment Notes:</label>
+                                <textarea name="notes" id="id_notes" class="form-textarea" rows="4" 
+                                          placeholder="Enter any special instructions or notes for this assignment...">{{ assignment_notes }}</textarea>
+                                {% if form.notes.errors %}
+                                    <div class="error-text">{{ form.notes.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    {% if current_assignment and current_assignment.is_active %}
+                                        Update Assignment
+                                    {% else %}
+                                        Assign Trainer
+                                    {% endif %}
+                                </button>
+                                <a href="{% url 'admin:accounts_customer_changelist' %}" class="btn-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Available Trainers -->
+        <div class="trainers-section">
+            <div class="trainers-card">
+                <div class="card-header">
+                    <h3>Available Trainers</h3>
+                    <span class="trainer-count">{{ available_trainers|length }} trainer{{ available_trainers|length|pluralize }} available</span>
+                </div>
+                <div class="card-body">
+                    {% if available_trainers %}
+                        <div class="trainers-grid">
+                            {% for trainer in available_trainers %}
+                                <div class="trainer-card">
+                                    <div class="trainer-header">
+                                        <h5>{{ trainer.display_name }}</h5>
+                                        <div class="trainer-rating">
+                                            <span class="rating">{{ trainer.average_rating|floatformat:1 }}</span>
+                                            <span class="stars">★</span>
+                                        </div>
+                                    </div>
+                                    <div class="trainer-details">
+                                        <div class="detail-item">
+                                            <span class="icon">💼</span>
+                                            <span>{{ trainer.experience_years }} years experience</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="icon">👥</span>
+                                            <span>{{ trainer.active_clients_count }} active clients</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="icon">🎯</span>
+                                            <span>{{ trainer.specializations|default:"General Fitness"|truncatewords:3 }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="icon">📧</span>
+                                            <span>{{ trainer.display_email }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="trainer-availability">
+                                        <span class="availability {{ trainer.availability_class }}">{{ trainer.availability_text }} Availability</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="no-trainers">
+                            <div class="no-trainers-icon">⚠️</div>
+                            <h4>No Verified Trainers Available</h4>
+                            <p>Please verify at least one trainer before assigning them to customers.</p>
+                            <a href="{% url 'admin:accounts_trainer_changelist' %}" class="btn-primary">
+                                Manage Trainers
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Main Layout */
+.main-content {
+    background: #f8f9fa;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+/* Cards */
+.form-card, .trainers-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h2, .card-header h3 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.4em;
+}
+
+.trainer-count {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+/* Customer Information */
+.info-section {
+    margin-bottom: 30px;
+}
+
+.info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.info-col h4 {
+    color: #333;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.info-item {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.info-item .label {
+    font-weight: 600;
+    color: #555;
+    width: 120px;
+    flex-shrink: 0;
+}
+
+.info-item .value {
+    color: #333;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Current Assignment */
+.current-assignment {
+    background: #e3f2fd;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.current-assignment h4 {
+    color: #0277bd;
+    margin-bottom: 15px;
+}
+
+/* Assignment Form */
+.assignment-form h4 {
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.form-select, .form-textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.error-text {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+/* Trainers Grid */
+.trainers-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.trainer-card {
+    border: 2px solid #f1f3f4;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+}
+
+.trainer-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.trainer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.trainer-header h5 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.trainer-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.rating {
+    font-weight: 600;
+    color: #333;
+}
+
+.stars {
+    color: #ffc107;
+    font-size: 1.2em;
+}
+
+.trainer-details {
+    margin-bottom: 15px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.icon {
+    font-size: 1.1em;
+}
+
+.trainer-availability {
+    text-align: center;
+}
+
+.availability {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.availability.high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.availability.medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.availability.low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* No Trainers */
+.no-trainers {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.no-trainers-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+.no-trainers h4 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.no-trainers p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Selected Trainer Info */
+.selected-trainer-info {
+    margin-top: 10px;
+    padding: 15px;
+    background: #e8f5e8;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.trainer-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.trainer-preview strong {
+    color: #155724;
+    font-size: 1.1em;
+}
+
+.trainer-preview span {
+    color: #155724;
+    font-size: 0.9em;
+}
+
+/* Form Select Improvements */
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 12px;
+    padding-right: 40px;
+}
+
+.form-select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23667eea' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .content-wrapper {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .info-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: 10px;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .trainer-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+</style>
+
+<script>
+function updateTrainerSelection(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const infoDiv = document.getElementById('selected-trainer-info');
+    const nameSpan = document.getElementById('selected-trainer-name');
+    const detailsSpan = document.getElementById('selected-trainer-details');
+    
+    if (selectedOption.value) {
+        const name = selectedOption.getAttribute('data-name');
+        const clients = selectedOption.getAttribute('data-clients');
+        const rating = selectedOption.getAttribute('data-rating');
+        
+        nameSpan.textContent = name;
+        detailsSpan.textContent = `${clients} active clients • ${rating}★ rating`;
+        infoDiv.style.display = 'block';
+    } else {
+        infoDiv.style.display = 'none';
+    }
+}
+
+// Initialize on page load if there's a selected trainer
+document.addEventListener('DOMContentLoaded', function() {
+    const selectElement = document.getElementById('id_trainer');
+    if (selectElement.value) {
+        updateTrainerSelection(selectElement);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,863 @@
+<!-- templates/admin/share_resource.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Share Resource - {{ resource.title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:accounts_resource_changelist' %}">Resources</a>
+    &rsaquo; Share {{ resource.title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="share-resource-container">
+    <div class="content-wrapper">
+        <div class="main-section">
+            <div class="share-card">
+                <div class="share-header">
+                    <h2><i class="fas fa-share-alt"></i> Share Resource with Customers</h2>
+                </div>
+                <div class="share-body">
+                    <!-- Resource Information -->
+                    <div class="resource-info-box">
+                        <div class="resource-icon">
+                            <i class="fas fa-{% if resource.resource_type == 'video' %}video{% elif resource.resource_type == 'pdf' %}file-pdf{% elif resource.resource_type == 'image' %}image{% elif resource.resource_type == 'audio' %}headphones{% else %}file{% endif %}"></i>
+                        </div>
+                        <div class="resource-details">
+                            <h3>{{ resource.title }}</h3>
+                            <p class="resource-type">
+                                <span class="type-badge">{{ resource.get_resource_type_display }}</span>
+                                {% if resource.is_premium %}
+                                    <span class="premium-badge"><i class="fas fa-crown"></i> Premium Resource</span>
+                                {% endif %}
+                            </p>
+                            <p class="resource-description">{{ resource.description }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Sharing Form -->
+                    <form method="post" class="share-form">
+                        {% csrf_token %}
+                        
+                        <div class="form-section">
+                            <h4><i class="fas fa-users"></i> Select Customers to Share With:</h4>
+                            
+                            <div class="select-all-wrapper">
+                                <div class="custom-checkbox">
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                    <label for="selectAll" class="select-all-label">
+                                        <strong>Select All Personal Training Customers</strong>
+                                        <span class="customer-count">({{ customers.count }} customers)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="customer-list">
+                                {% for customer in customers %}
+                                    <div class="customer-item">
+                                        <div class="custom-checkbox">
+                                            <input class="form-check-input customer-checkbox" type="checkbox" 
+                                                   name="customers" value="{{ customer.id }}" 
+                                                   id="customer_{{ customer.id }}">
+                                            <label for="customer_{{ customer.id }}" class="customer-label">
+                                                <div class="customer-info">
+                                                    <div class="customer-name">{{ customer.profile.user.get_full_name }}</div>
+                                                    <div class="customer-email">{{ customer.profile.user.email }}</div>
+                                                </div>
+                                                <div class="trainer-info">
+                                                    {% if customer.trainer_assignment and customer.trainer_assignment.is_active %}
+                                                        <span class="trainer-badge has-trainer">
+                                                            <i class="fas fa-user-check"></i> {{ customer.trainer_assignment.trainer.profile.user.get_full_name }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="trainer-badge no-trainer">
+                                                            <i class="fas fa-user-times"></i> No Trainer
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="empty-state">
+                                        <i class="fas fa-users-slash"></i>
+                                        <p>No customers with personal training subscriptions found.</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4><i class="fas fa-envelope"></i> Personal Message (Optional)</h4>
+                            <textarea class="form-control message-textarea" id="message" name="message" rows="4" 
+                                      placeholder="Add a personal message to include with the resource..."></textarea>
+                            <small class="form-text">This message will be included in the notification sent to customers.</small>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="email-notification-wrapper">
+                                <div class="custom-checkbox">
+                                    <input class="form-check-input" type="checkbox" id="notify_email" name="notify_email" checked>
+                                    <label for="notify_email" class="email-label">
+                                        <i class="fas fa-bell"></i> Send email notifications to selected customers
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert-box">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <strong>Note:</strong> Selected customers will receive notifications about this shared resource 
+                                and will be able to access it from their dashboard.
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <a href="{% url 'admin:accounts_resource_changelist' %}" class="btn-cancel">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn-share" id="shareButton" disabled>
+                                <i class="fas fa-share"></i> Share Resource
+                                <span class="selected-count-badge">0</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <!-- Resource Preview -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-eye"></i> Resource Preview</h5>
+                </div>
+                <div class="sidebar-body">
+                    <div class="preview-icon">
+                        <i class="fas fa-{% if resource.resource_type == 'video' %}play-circle{% elif resource.resource_type == 'pdf' %}file-pdf{% elif resource.resource_type == 'image' %}image{% elif resource.resource_type == 'audio' %}headphones{% else %}file{% endif %}"></i>
+                    </div>
+                    <h6 class="preview-title">{{ resource.title }}</h6>
+                    <p class="preview-description">{{ resource.description|truncatewords:15 }}</p>
+                    
+                    {% if resource.file %}
+                        <a href="{{ resource.file.url }}" class="preview-btn" target="_blank">
+                            <i class="fas fa-external-link-alt"></i> Preview File
+                        </a>
+                    {% elif resource.external_url %}
+                        <a href="{{ resource.external_url }}" class="preview-btn" target="_blank">
+                            <i class="fas fa-link"></i> Open Link
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sharing Statistics -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-chart-pie"></i> Sharing Statistics</h5>
+                </div>
+                <div class="sidebar-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ customers.count }}</div>
+                            <div class="stat-label">Available</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="selectedCount">0</div>
+                            <div class="stat-label">Selected</div>
+                        </div>
+                    </div>
+                    <div class="progress-wrapper">
+                        <div class="progress">
+                            <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
+                </div>
+                <div class="sidebar-body">
+                    <button type="button" class="quick-action-btn" onclick="selectAllWithActiveTrainer()">
+                        <i class="fas fa-user-check"></i> Select Customers with Trainers
+                    </button>
+                    <button type="button" class="quick-action-btn" onclick="selectAllWithoutTrainer()">
+                        <i class="fas fa-user-times"></i> Select Customers without Trainers
+                    </button>
+                    <button type="button" class="quick-action-btn" onclick="clearSelection()">
+                        <i class="fas fa-eraser"></i> Clear All Selections
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Main Container */
+.share-resource-container {
+    background: #f5f7fa;
+    min-height: 100vh;
+    padding: 30px;
+}
+
+.content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 30px;
+}
+
+/* Main Share Card */
+.share-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.share-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+}
+
+.share-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.share-header i {
+    margin-right: 10px;
+}
+
+.share-body {
+    padding: 30px;
+}
+
+/* Resource Info Box */
+.resource-info-box {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.resource-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    flex-shrink: 0;
+}
+
+.resource-icon i {
+    font-size: 36px;
+    color: white;
+}
+
+.resource-details h3 {
+    margin: 0 0 10px 0;
+    color: #2d3748;
+    font-size: 20px;
+}
+
+.resource-type {
+    margin-bottom: 10px;
+}
+
+.type-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #e9ecef;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.premium-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #ffeaa7;
+    color: #d63031;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.resource-description {
+    margin: 0;
+    color: #718096;
+    line-height: 1.6;
+}
+
+/* Form Sections */
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section h4 {
+    color: #2d3748;
+    font-size: 18px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.form-section h4 i {
+    margin-right: 8px;
+    color: #667eea;
+}
+
+/* Select All */
+.select-all-wrapper {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.select-all-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.customer-count {
+    color: #718096;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+/* Customer List */
+.customer-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fafbfc;
+}
+
+.customer-item {
+    margin-bottom: 10px;
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.customer-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+}
+
+.custom-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    cursor: pointer;
+}
+
+.customer-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+}
+
+.customer-info {
+    flex: 1;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 4px;
+}
+
+.customer-email {
+    color: #718096;
+    font-size: 14px;
+}
+
+.trainer-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trainer-badge.has-trainer {
+    background: #d4f1e4;
+    color: #0f7938;
+}
+
+.trainer-badge.no-trainer {
+    background: #ffeaa7;
+    color: #d63031;
+}
+
+/* Message Textarea */
+.message-textarea {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 14px;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.message-textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+/* Email Notification */
+.email-notification-wrapper {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.email-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+/* Alert Box */
+.alert-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 30px;
+    color: #1565c0;
+}
+
+.alert-box i {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.btn-cancel, .btn-share {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-cancel {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.btn-cancel:hover {
+    background: #dee2e6;
+    transform: translateY(-2px);
+}
+
+.btn-share {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: relative;
+}
+
+.btn-share:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-share:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.selected-count-badge {
+    background: white;
+    color: #667eea;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+/* Sidebar Cards */
+.sidebar-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.sidebar-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-header h5 {
+    margin: 0;
+    font-size: 16px;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-header i {
+    color: #667eea;
+}
+
+.sidebar-body {
+    padding: 20px;
+}
+
+/* Preview Card */
+.preview-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+}
+
+.preview-icon i {
+    font-size: 36px;
+    color: #667eea;
+}
+
+.preview-title {
+    text-align: center;
+    color: #2d3748;
+    margin-bottom: 10px;
+}
+
+.preview-description {
+    text-align: center;
+    color: #718096;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.preview-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: #667eea;
+    color: white;
+    text-align: center;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.preview-btn:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+}
+
+/* Statistics */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 700;
+    color: #2d3748;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #718096;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.progress-wrapper {
+    margin-top: 20px;
+}
+
+.progress {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    transition: width 0.3s ease;
+}
+
+/* Quick Actions */
+.quick-action-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    color: #2d3748;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.quick-action-btn:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.quick-action-btn:last-child {
+    margin-bottom: 0;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #718096;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Scrollbar Styling */
+.customer-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.customer-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.customer-list::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.customer-list::-webkit-scrollbar-thumb:hover {
+    background: #5a67d8;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .content-wrapper {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .share-resource-container {
+        padding: 20px;
+    }
+    
+    .share-body {
+        padding: 20px;
+    }
+    
+    .resource-info-box {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .resource-icon {
+        margin-right: 0;
+        margin-bottom: 15px;
+    }
+    
+    .customer-label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-cancel, .btn-share {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const customerCheckboxes = document.querySelectorAll('.customer-checkbox');
+    const shareButton = document.getElementById('shareButton');
+    const selectedCountElement = document.getElementById('selectedCount');
+    const selectedCountBadge = document.querySelector('.selected-count-badge');
+    const progressBar = document.getElementById('progressBar');
+    const totalCustomers = customerCheckboxes.length;
+
+    // Update selected count and button state
+    function updateSelectionState() {
+        const selectedCount = document.querySelectorAll('.customer-checkbox:checked').length;
+        selectedCountElement.textContent = selectedCount;
+        selectedCountBadge.textContent = selectedCount;
+        shareButton.disabled = selectedCount === 0;
+        
+        // Update progress bar
+        const percentage = totalCustomers > 0 ? (selectedCount / totalCustomers) * 100 : 0;
+        progressBar.style.width = percentage + '%';
+        
+        // Update select all checkbox state
+        if (selectedCount === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (selectedCount === totalCustomers) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+
+    // Select all functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        customerCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSelectionState();
+    });
+
+    // Individual checkbox listeners
+    customerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectionState);
+    });
+
+    // Initial state
+    updateSelectionState();
+});
+
+function selectAllWithActiveTrainer() {
+    const checkboxes = document.querySelectorAll('.customer-checkbox');
+    checkboxes.forEach(checkbox => {
+        const label = checkbox.nextElementSibling;
+        const hasTrainer = label.textContent.includes('No Trainer') === false;
+        checkbox.checked = hasTrainer;
+    });
+    updateSelectionState();
+}
+
+function selectAllWithoutTrainer() {
+    const checkboxes = document.querySelectorAll('.customer-checkbox');
+    checkboxes.forEach(checkbox => {
+        const label = checkbox.nextElementSibling;
+        const hasNoTrainer = label.textContent.includes('No Trainer');
+        checkbox.checked = hasNoTrainer;
+    });
+    updateSelectionState();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.customer-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAll').checked = false;
+    updateSelectionState();
+}
+
+function updateSelectionState() {
+    const customerCheckboxes = document.querySelectorAll('.customer-checkbox');
+    const selectedCount = document.querySelectorAll('.customer-checkbox:checked').length;
+    const totalCustomers = customerCheckboxes.length;
+    
+    document.getElementById('selectedCount').textContent = selectedCount;
+    document.querySelector('.selected-count-badge').textContent = selectedCount;
+    document.getElementById('shareButton').disabled = selectedCount === 0;
+    
+    // Update progress bar
+    const percentage = totalCustomers > 0 ? (selectedCount / totalCustomers) * 100 : 0;
+    document.getElementById('progressBar').style.width = percentage + '%';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,904 @@
+<!-- templates/admin/send_message.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Send Message{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:accounts_customer_changelist' %}">Customers</a>
+    &rsaquo; Send Message
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="message-container">
+    <div class="content-wrapper">
+        <div class="message-card">
+            <div class="message-header">
+                <div class="header-content">
+                    <h2><i class="fas fa-envelope"></i> Send Message</h2>
+                    <p>Facilitate communication between trainer and customer</p>
+                </div>
+            </div>
+            
+            <div class="message-body">
+                <!-- Participants Section -->
+                <div class="participants-section">
+                    <div class="participant-grid">
+                        <div class="participant-card customer-card">
+                            <div class="participant-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="participant-info">
+                                <h5>Customer</h5>
+                                <p class="participant-name">{{ customer.profile.user.get_full_name }}</p>
+                                <p class="participant-email">
+                                    <i class="fas fa-envelope-open"></i> {{ customer.profile.user.email }}
+                                </p>
+                                {% if customer.profile.phone %}
+                                    <p class="participant-phone">
+                                        <i class="fas fa-phone"></i> {{ customer.profile.phone }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="connection-line">
+                            <div class="line"></div>
+                            <div class="connection-icon">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div class="line"></div>
+                        </div>
+                        
+                        <div class="participant-card trainer-card">
+                            <div class="participant-icon">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="participant-info">
+                                <h5>Trainer</h5>
+                                <p class="participant-name">{{ trainer.profile.user.get_full_name }}</p>
+                                <p class="participant-email">
+                                    <i class="fas fa-envelope-open"></i> {{ trainer.profile.user.email }}
+                                </p>
+                                <p class="participant-detail">
+                                    <i class="fas fa-award"></i> {{ trainer.experience_years }} years experience
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Form -->
+                <form method="post" class="message-form">
+                    {% csrf_token %}
+                    
+                    <!-- Message Direction -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-directions"></i> Message Direction</h4>
+                        <div class="direction-selector">
+                            <div class="direction-option">
+                                <input class="form-check-input" type="radio" name="sender" value="trainer" id="sender_trainer" checked>
+                                <label class="direction-label" for="sender_trainer">
+                                    <div class="direction-flow">
+                                        <span class="sender-badge trainer">Trainer</span>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <span class="receiver-badge customer">Customer</span>
+                                    </div>
+                                    <small>Send message from trainer to customer</small>
+                                </label>
+                            </div>
+                            
+                            <div class="direction-option">
+                                <input class="form-check-input" type="radio" name="sender" value="customer" id="sender_customer">
+                                <label class="direction-label" for="sender_customer">
+                                    <div class="direction-flow">
+                                        <span class="sender-badge customer">Customer</span>
+                                        <i class="fas fa-arrow-right"></i>
+                                        <span class="receiver-badge trainer">Trainer</span>
+                                    </div>
+                                    <small>Send message from customer to trainer</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subject Field -->
+                    <div class="form-section">
+                        <label for="subject" class="form-label">
+                            <i class="fas fa-heading"></i> Subject
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="text" 
+                                   class="form-control form-input" 
+                                   id="subject" 
+                                   name="subject" 
+                                   required 
+                                   placeholder="Enter a clear subject line..."
+                                   maxlength="100">
+                            <span class="char-counter" id="subjectCounter">0/100</span>
+                        </div>
+                    </div>
+
+                    <!-- Message Field -->
+                    <div class="form-section">
+                        <label for="message" class="form-label">
+                            <i class="fas fa-comment-alt"></i> Message
+                        </label>
+                        <div class="input-wrapper">
+                            <textarea class="form-control form-textarea" 
+                                      id="message" 
+                                      name="message" 
+                                      rows="8" 
+                                      required 
+                                      placeholder="Type your message here..."></textarea>
+                            <div class="textarea-toolbar">
+                                <span class="char-counter" id="messageCounter">0 characters</span>
+                                <div class="toolbar-buttons">
+                                    <button type="button" class="toolbar-btn" onclick="insertTemplate('greeting')">
+                                        <i class="fas fa-hand-wave"></i> Greeting
+                                    </button>
+                                    <button type="button" class="toolbar-btn" onclick="insertTemplate('schedule')">
+                                        <i class="fas fa-calendar"></i> Schedule
+                                    </button>
+                                    <button type="button" class="toolbar-btn" onclick="insertTemplate('followup')">
+                                        <i class="fas fa-check-circle"></i> Follow-up
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Alert -->
+                    <div class="notification-alert">
+                        <div class="alert-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="alert-content">
+                            <h5>Email Notifications</h5>
+                            <p>Both the sender and recipient will receive email notifications about this message. The message will also appear in their dashboard.</p>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <a href="{% url 'admin:accounts_customer_changelist' %}" class="btn-cancel">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn-send">
+                            <i class="fas fa-paper-plane"></i> Send Message
+                            <span class="btn-loader" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Actions Sidebar -->
+        <div class="sidebar">
+            <!-- Message Templates -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-file-alt"></i> Quick Templates</h5>
+                </div>
+                <div class="sidebar-body">
+                    <div class="template-list">
+                        <button class="template-item" onclick="useTemplate('welcome')">
+                            <i class="fas fa-smile"></i>
+                            <span>Welcome Message</span>
+                        </button>
+                        <button class="template-item" onclick="useTemplate('reminder')">
+                            <i class="fas fa-clock"></i>
+                            <span>Session Reminder</span>
+                        </button>
+                        <button class="template-item" onclick="useTemplate('feedback')">
+                            <i class="fas fa-comment-dots"></i>
+                            <span>Request Feedback</span>
+                        </button>
+                        <button class="template-item" onclick="useTemplate('congrats')">
+                            <i class="fas fa-trophy"></i>
+                            <span>Congratulations</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Messages -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-history"></i> Message History</h5>
+                </div>
+                <div class="sidebar-body">
+                    <div class="history-info">
+                        <p class="text-muted">Recent messages between this trainer and customer will appear here.</p>
+                        <div class="history-stats">
+                            <div class="stat">
+                                <i class="fas fa-envelope"></i>
+                                <span>No previous messages</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="sidebar-card">
+                <div class="sidebar-header">
+                    <h5><i class="fas fa-lightbulb"></i> Communication Tips</h5>
+                </div>
+                <div class="sidebar-body">
+                    <ul class="tips-list">
+                        <li><i class="fas fa-check"></i> Keep messages professional and friendly</li>
+                        <li><i class="fas fa-check"></i> Be clear and specific in your subject line</li>
+                        <li><i class="fas fa-check"></i> Include action items if needed</li>
+                        <li><i class="fas fa-check"></i> Respond within 24 hours</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Container and Layout */
+.message-container {
+    background: #f5f7fa;
+    min-height: 100vh;
+    padding: 30px;
+}
+
+.content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 30px;
+}
+
+/* Main Message Card */
+.message-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.message-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 30px;
+    color: white;
+}
+
+.header-content h2 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.header-content h2 i {
+    margin-right: 10px;
+}
+
+.header-content p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 16px;
+}
+
+.message-body {
+    padding: 30px;
+}
+
+/* Participants Section */
+.participants-section {
+    margin-bottom: 40px;
+}
+
+.participant-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 30px;
+    align-items: center;
+}
+
+.participant-card {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.customer-card {
+    border-color: #e3f2fd;
+}
+
+.trainer-card {
+    border-color: #f3e5f5;
+}
+
+.participant-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.participant-icon {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.customer-card .participant-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.trainer-card .participant-icon {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.participant-info h5 {
+    margin: 0 0 10px 0;
+    color: #2d3748;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.participant-name {
+    font-weight: 600;
+    color: #1a202c;
+    font-size: 18px;
+    margin: 0 0 8px 0;
+}
+
+.participant-email,
+.participant-phone,
+.participant-detail {
+    color: #718096;
+    font-size: 14px;
+    margin: 0 0 5px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.participant-email i,
+.participant-phone i,
+.participant-detail i {
+    font-size: 12px;
+    color: #a0aec0;
+}
+
+/* Connection Line */
+.connection-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.line {
+    height: 2px;
+    width: 40px;
+    background: #e2e8f0;
+}
+
+.connection-icon {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #667eea;
+    margin: 0 10px;
+}
+
+/* Form Sections */
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section h4 {
+    color: #2d3748;
+    font-size: 16px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-section h4 i {
+    color: #667eea;
+    font-size: 14px;
+}
+
+/* Direction Selector */
+.direction-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.direction-option {
+    position: relative;
+}
+
+.direction-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.direction-label {
+    display: block;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.direction-option input[type="radio"]:checked + .direction-label {
+    background: #e3f2fd;
+    border-color: #667eea;
+}
+
+.direction-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.sender-badge,
+.receiver-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sender-badge.trainer,
+.receiver-badge.trainer {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.sender-badge.customer,
+.receiver-badge.customer {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.direction-label small {
+    color: #718096;
+    font-size: 12px;
+}
+
+/* Form Inputs */
+.form-label {
+    display: block;
+    color: #2d3748;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.char-counter {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    color: #a0aec0;
+    font-size: 12px;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 150px;
+    padding-bottom: 40px;
+}
+
+/* Textarea Toolbar */
+.textarea-toolbar {
+    position: absolute;
+    bottom: 10px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toolbar-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.toolbar-btn {
+    padding: 4px 10px;
+    background: #f1f3f4;
+    border: none;
+    border-radius: 6px;
+    color: #5f6368;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-btn:hover {
+    background: #e8eaed;
+    color: #1a73e8;
+}
+
+/* Notification Alert */
+.notification-alert {
+    display: flex;
+    gap: 15px;
+    background: #f0f9ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.alert-icon {
+    width: 40px;
+    height: 40px;
+    background: #3b82f6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.alert-content h5 {
+    margin: 0 0 5px 0;
+    color: #1e40af;
+    font-size: 16px;
+}
+
+.alert-content p {
+    margin: 0;
+    color: #3730a3;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-cancel,
+.btn-send {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+}
+
+.btn-cancel {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.btn-cancel:hover {
+    background: #dee2e6;
+    transform: translateY(-2px);
+}
+
+.btn-send {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: relative;
+}
+
+.btn-send:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sidebar-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.sidebar-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-header h5 {
+    margin: 0;
+    font-size: 16px;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-header i {
+    color: #667eea;
+}
+
+.sidebar-body {
+    padding: 20px;
+}
+
+/* Template List */
+.template-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.template-item {
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #2d3748;
+    text-align: left;
+    width: 100%;
+}
+
+.template-item:hover {
+    background: #e3f2fd;
+    border-color: #667eea;
+    transform: translateX(5px);
+}
+
+.template-item i {
+    color: #667eea;
+}
+
+/* History Info */
+.history-info {
+    text-align: center;
+}
+
+.history-stats {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #718096;
+    font-size: 14px;
+}
+
+/* Tips List */
+.tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tips-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f3f4;
+    font-size: 14px;
+    color: #4a5568;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.tips-list li:last-child {
+    border-bottom: none;
+}
+
+.tips-list i {
+    color: #48bb78;
+    margin-top: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .content-wrapper {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .participant-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .connection-line {
+        transform: rotate(90deg);
+        margin: 20px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .message-container {
+        padding: 20px;
+    }
+    
+    .message-body {
+        padding: 20px;
+    }
+    
+    .direction-selector {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn-cancel,
+    .btn-send {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .toolbar-buttons {
+        display: none;
+    }
+}
+</style>
+
+<script>
+// Character counters
+document.getElementById('subject').addEventListener('input', function() {
+    const length = this.value.length;
+    document.getElementById('subjectCounter').textContent = `${length}/100`;
+});
+
+document.getElementById('message').addEventListener('input', function() {
+    const length = this.value.length;
+    document.getElementById('messageCounter').textContent = `${length} characters`;
+});
+
+// Form submission
+document.querySelector('.message-form').addEventListener('submit', function(e) {
+    const submitBtn = document.querySelector('.btn-send');
+    submitBtn.querySelector('.btn-loader').style.display = 'inline-block';
+    submitBtn.disabled = true;
+});
+
+// Template functions
+function insertTemplate(type) {
+    const messageField = document.getElementById('message');
+    const templates = {
+        greeting: "Hello [Name],\n\nI hope this message finds you well. ",
+        schedule: "I'd like to schedule our next training session. Please let me know your availability for the following times:\n\n",
+        followup: "Following up on our recent session, I wanted to check how you're feeling and if you have any questions.\n\n"
+    };
+    
+    const currentText = messageField.value;
+    const template = templates[type] || '';
+    messageField.value = currentText + template;
+    messageField.focus();
+    
+    // Update character counter
+    const length = messageField.value.length;
+    document.getElementById('messageCounter').textContent = `${length} characters`;
+}
+
+function useTemplate(type) {
+    const subjectField = document.getElementById('subject');
+    const messageField = document.getElementById('message');
+    
+    const templates = {
+        welcome: {
+            subject: "Welcome to Your Fitness Journey!",
+            message: "Welcome to our training program!\n\nI'm excited to work with you on achieving your fitness goals. In our upcoming sessions, we'll focus on creating a personalized plan that works for you.\n\nPlease feel free to reach out if you have any questions before our first session.\n\nLooking forward to working with you!\n\nBest regards,"
+        },
+        reminder: {
+            subject: "Upcoming Training Session Reminder",
+            message: "Hi there!\n\nThis is a friendly reminder about our training session scheduled for [DATE/TIME].\n\nPlease remember to:\n- Wear comfortable workout clothes\n- Bring a water bottle\n- Have a light meal 1-2 hours before\n\nIf you need to reschedule, please let me know as soon as possible.\n\nSee you soon!"
+        },
+        feedback: {
+            subject: "How was your recent session?",
+            message: "Hi!\n\nI hope you're feeling great after our recent session. I'd love to hear your feedback:\n\n- How are you feeling physically?\n- Any areas of soreness or discomfort?\n- What did you enjoy most about the session?\n- Any exercises you'd like to focus on more?\n\nYour feedback helps me tailor our sessions to better meet your needs.\n\nTake care and see you next time!"
+        },
+        congrats: {
+            subject: "Congratulations on Your Progress!",
+            message: "Congratulations!\n\nI wanted to take a moment to acknowledge the amazing progress you've been making. Your dedication and hard work are really paying off!\n\n[Specific achievement or milestone]\n\nKeep up the fantastic work! I'm proud to be part of your fitness journey.\n\nBest wishes,"
+        }
+    };
+    
+    const template = templates[type];
+    if (template) {
+        subjectField.value = template.subject;
+        messageField.value = template.message;
+        
+        // Update counters
+        document.getElementById('subjectCounter').textContent = `${template.subject.length}/100`;
+        document.getElementById('messageCounter').textContent = `${template.message.length} characters`;
+    }
+}
+</script>
+{% endblock %}
