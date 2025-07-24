@@ -1,0 +1,391 @@
+<!-- templates/accounts/dashboard/customer_profile.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .profile-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .profile-card:hover {
+            transform: translateY(-2px);
+        }
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link active" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                    </a>
+                    <a class="nav-link" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">My Profile</h2>
+                            <p class="text-muted">Manage your personal information and preferences</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'change_password' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-key me-1"></i>Change Password
+                            </a>
+                            <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row">
+                        <!-- Profile Information -->
+                        <div class="col-lg-8">
+                            <div class="card profile-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <!-- Profile Picture -->
+                                            <div class="col-md-4 text-center mb-4">
+                                                {% if user.profile.profile_picture %}
+                                                    <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle profile-avatar mb-3" alt="Profile Picture">
+                                                {% else %}
+                                                    <img src="https://via.placeholder.com/120x120" class="rounded-circle profile-avatar mb-3" alt="Profile Picture">
+                                                {% endif %}
+                                                <div class="mb-3">
+                                                    <label for="profile_picture" class="form-label">Profile Picture</label>
+                                                    <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*">
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Basic Information -->
+                                            <div class="col-md-8">
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="first_name" class="form-label">First Name</label>
+                                                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="last_name" class="form-label">Last Name</label>
+                                                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="email" class="form-label">Email</label>
+                                                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="phone" class="form-label">Phone Number</label>
+                                                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.profile.phone }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                                        <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ customer.date_of_birth|date:'Y-m-d' }}">
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="gender" class="form-label">Gender</label>
+                                                        <select class="form-select" id="gender" name="gender">
+                                                            <option value="">Select Gender</option>
+                                                            <option value="M" {% if customer.gender == 'M' %}selected{% endif %}>Male</option>
+                                                            <option value="F" {% if customer.gender == 'F' %}selected{% endif %}>Female</option>
+                                                            <option value="O" {% if customer.gender == 'O' %}selected{% endif %}>Other</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Fitness Information -->
+                                        <hr class="my-4">
+                                        <h6 class="mb-3"><i class="fas fa-dumbbell me-2"></i>Fitness Information</h6>
+                                        <div class="row">
+                                            <div class="col-md-3 mb-3">
+                                                <label for="height" class="form-label">Height (cm)</label>
+                                                <input type="number" class="form-control" id="height" name="height" value="{{ customer.height }}" step="0.1">
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label for="weight" class="form-label">Weight (kg)</label>
+                                                <input type="number" class="form-control" id="weight" name="weight" value="{{ customer.weight }}" step="0.1">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="fitness_level" class="form-label">Fitness Level</label>
+                                                <select class="form-select" id="fitness_level" name="fitness_level">
+                                                    <option value="beginner" {% if customer.fitness_level == 'beginner' %}selected{% endif %}>Beginner</option>
+                                                    <option value="intermediate" {% if customer.fitness_level == 'intermediate' %}selected{% endif %}>Intermediate</option>
+                                                    <option value="advanced" {% if customer.fitness_level == 'advanced' %}selected{% endif %}>Advanced</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <label for="fitness_goals" class="form-label">Fitness Goals</label>
+                                                <textarea class="form-control" id="fitness_goals" name="fitness_goals" rows="3" placeholder="Describe your fitness goals...">{{ customer.fitness_goals }}</textarea>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <label for="medical_conditions" class="form-label">Medical Conditions (Optional)</label>
+                                                <textarea class="form-control" id="medical_conditions" name="medical_conditions" rows="2" placeholder="Any medical conditions or injuries we should be aware of...">{{ customer.medical_conditions }}</textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between">
+                                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                                                <i class="fas fa-trash me-1"></i>Delete Account
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-1"></i>Save Changes
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Stats -->
+                        <div class="col-lg-4">
+                            <div class="card profile-card stats-card text-white mb-4">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Your Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-6 mb-3">
+                                            <h4 class="mb-0">{{ total_goals }}</h4>
+                                            <small>Total Goals</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="mb-0">{{ completed_goals }}</h4>
+                                            <small>Completed</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="mb-0">{{ progress_entries }}</h4>
+                                            <small>Progress Entries</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="mb-0">{{ unread_notifications }}</h4>
+                                            <small>Notifications</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Subscription Info -->
+                            {% if current_subscription %}
+                                <div class="card profile-card mb-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-crown me-2 text-warning"></i>Current Plan</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 class="mb-2">{{ current_subscription.plan.name }}</h6>
+                                        <p class="text-muted mb-2">${{ current_subscription.plan.price }}/{{ current_subscription.plan.duration_days }} days</p>
+                                        {% if current_subscription.is_active %}
+                                            <div class="d-flex justify-content-between">
+                                                <span class="text-success">Active</span>
+                                                <span class="small">{{ current_subscription.days_remaining }} days left</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-danger">Expired</span>
+                                        {% endif %}
+                                        <a href="{% url 'subscription_details' %}" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="card profile-card mb-4">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-crown text-muted mb-3" style="font-size: 2rem;"></i>
+                                        <h6 class="text-muted">No Active Plan</h6>
+                                        <p class="text-muted small">Subscribe to unlock premium features</p>
+                                        <a href="{% url 'subscription_plans' %}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-plus me-1"></i>Choose Plan
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Account Security -->
+                            <div class="card profile-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2 text-success"></i>Account Security</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'change_password' %}" class="btn btn-outline-primary">
+                                            <i class="fas fa-key me-1"></i>Change Password
+                                        </a>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Last login: {{ user.last_login|timesince }} ago
+                                        </small>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            Member since: {{ user.date_joined|date:"M Y" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Modal -->
+    <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Delete Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning!</strong> This action cannot be undone.
+                    </div>
+                    <p>Are you sure you want to permanently delete your account? This will:</p>
+                    <ul>
+                        <li>Delete all your personal information</li>
+                        <li>Cancel any active subscriptions</li>
+                        <li>Remove all progress and goal data</li>
+                        <li>Delete all messages and notifications</li>
+                    </ul>
+                    <p class="mb-0">If you're sure, please type <strong>DELETE</strong> below to confirm.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <a href="{% url 'delete_account' %}" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Delete Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // BMI Calculator (if both height and weight are entered)
+        function calculateBMI() {
+            const height = document.getElementById('height').value;
+            const weight = document.getElementById('weight').value;
+            
+            if (height && weight) {
+                const heightInMeters = height / 100;
+                const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+                
+                // You could display BMI here or add it to the form
+                console.log('BMI:', bmi);
+            }
+        }
+
+        // Add event listeners for BMI calculation
+        document.getElementById('height').addEventListener('input', calculateBMI);
+        document.getElementById('weight').addEventListener('input', calculateBMI);
+
+        // Preview profile picture before upload
+        document.getElementById('profile_picture').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.querySelector('.profile-avatar').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

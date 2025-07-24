@@ -1,0 +1,382 @@
+<!-- templates/accounts/dashboard/trainer_reports.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Analytics - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .report-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .report-card:hover {
+            transform: translateY(-2px);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Reports & Analytics</h2>
+                            <p class="text-muted">Track your training performance and business metrics</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" style="width: auto;">
+                                <option>This Month</option>
+                                <option>Last Month</option>
+                                <option>Last 3 Months</option>
+                                <option>This Year</option>
+                            </select>
+                            <button class="btn btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Key Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="card report-card text-center bg-primary text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-users mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ total_clients|default:0 }}</h3>
+                                    <small>Total Clients</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card report-card text-center bg-success text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-check mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ total_sessions|default:0 }}</h3>
+                                    <small>Total Sessions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card report-card text-center bg-warning text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-check-circle mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ completed_sessions|default:0 }}</h3>
+                                    <small>Completed Sessions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card report-card text-center bg-info text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-percentage mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ completion_rate|default:0 }}%</h3>
+                                    <small>Completion Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row mb-4">
+                        <!-- Sessions Chart -->
+                        <div class="col-lg-8 mb-4">
+                            <div class="card report-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Sessions Over Time</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="sessionsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client Distribution -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card report-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Session Types</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="sessionTypesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Performance -->
+                    <div class="row mb-4">
+                        <div class="col-lg-6 mb-4">
+                            <div class="card report-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>This Month's Performance</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-6 mb-3">
+                                            <h4 class="text-primary mb-0">{{ monthly_sessions|default:0 }}</h4>
+                                            <small class="text-muted">Sessions Conducted</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="text-success mb-0">{{ monthly_completed|default:0 }}</h4>
+                                            <small class="text-muted">Sessions Completed</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="text-info mb-0">{{ new_clients_month|default:0 }}</h4>
+                                            <small class="text-muted">New Clients</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="text-warning mb-0">{{ avg_rating|default:"0.0" }}</h4>
+                                            <small class="text-muted">Avg Rating</small>
+                                        </div>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ monthly_progress|default:0 }}%"></div>
+                                    </div>
+                                    <small class="text-muted">Monthly Goal Progress</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Overview -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card report-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Revenue Overview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <h3 class="text-success mb-0">${{ estimated_earnings|default:"0.00" }}</h3>
+                                        <small class="text-muted">Estimated Monthly Earnings</small>
+                                    </div>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <h5 class="text-primary mb-0">${{ hourly_rate|default:"0" }}</h5>
+                                            <small class="text-muted">Hourly Rate</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h5 class="text-info mb-0">{{ total_hours|default:0 }}</h5>
+                                            <small class="text-muted">Hours This Month</small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Based on completed sessions and hourly rate
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Client Progress Summary -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card report-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Client Success Stories</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="text-center p-3 bg-light rounded">
+                                                <i class="fas fa-weight text-success mb-2" style="font-size: 2rem;"></i>
+                                                <h5 class="mb-1">Weight Loss Goals</h5>
+                                                <p class="text-muted mb-0">{{ weight_loss_clients|default:0 }} clients achieved their weight loss goals</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="text-center p-3 bg-light rounded">
+                                                <i class="fas fa-dumbbell text-primary mb-2" style="font-size: 2rem;"></i>
+                                                <h5 class="mb-1">Strength Training</h5>
+                                                <p class="text-muted mb-0">{{ strength_clients|default:0 }} clients improved their strength significantly</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="text-center p-3 bg-light rounded">
+                                                <i class="fas fa-heart text-danger mb-2" style="font-size: 2rem;"></i>
+                                                <h5 class="mb-1">Fitness Goals</h5>
+                                                <p class="text-muted mb-0">{{ fitness_clients|default:0 }} clients reached their overall fitness goals</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sessions Chart
+        const sessionsCtx = document.getElementById('sessionsChart').getContext('2d');
+        new Chart(sessionsCtx, {
+            type: 'line',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [{
+                    label: 'Completed Sessions',
+                    data: [12, 15, 18, 14],
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Scheduled Sessions',
+                    data: [15, 18, 20, 16],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 5
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        });
+
+        // Session Types Chart
+        const sessionTypesCtx = document.getElementById('sessionTypesChart').getContext('2d');
+        new Chart(sessionTypesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Personal Training', 'Consultation', 'Assessment', 'Group Session'],
+                datasets: [{
+                    data: [60, 20, 10, 10],
+                    backgroundColor: [
+                        '#007bff',
+                        '#28a745',
+                        '#ffc107',
+                        '#dc3545'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

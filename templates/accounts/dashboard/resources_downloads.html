@@ -1,0 +1,505 @@
+<!-- templates/accounts/dashboard/resources_downloads.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resources & Downloads - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .resource-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .resource-card:hover {
+            transform: translateY(-5px);
+        }
+        .resource-card.premium {
+            border: 2px solid #ffc107;
+            position: relative;
+        }
+        .premium-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, #ffc107, #ff8f00);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .resource-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .video-icon { color: #dc3545; }
+        .pdf-icon { color: #e74c3c; }
+        .image-icon { color: #3498db; }
+        .audio-icon { color: #9b59b6; }
+        .link-icon { color: #27ae60; }
+        .document-icon { color: #6c757d; }
+        .filter-tabs .nav-link {
+            color: #6c757d;
+            border: none;
+            border-radius: 25px;
+            padding: 0.5rem 1.5rem;
+            margin: 0 0.25rem;
+        }
+        .filter-tabs .nav-link.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        .locked-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                    </a>
+                    <a class="nav-link" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link active" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Resources & Downloads</h2>
+                            <p class="text-muted">Access training materials, guides, and fitness resources</p>
+                        </div>
+                        {% if not current_subscription or not current_subscription.is_active %}
+                            <a href="{% url 'subscription_plans' %}" class="btn btn-warning">
+                                <i class="fas fa-crown me-1"></i>Upgrade for Premium Content
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Subscription Status Alert -->
+                    {% if not current_subscription or not current_subscription.is_active %}
+                        <div class="alert alert-info border-0" style="background: linear-gradient(45deg, #e3f2fd, #bbdefb);">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle text-info me-3" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h6 class="mb-1">Limited Access</h6>
+                                    <p class="mb-0">You currently have access to free resources only. <a href="{% url 'subscription_plans' %}" class="alert-link">Upgrade your plan</a> to unlock premium content including exclusive videos, detailed meal plans, and personalized training guides.</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Filter Tabs -->
+                    <ul class="nav nav-pills filter-tabs justify-content-center mb-4" id="resourceTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#all" type="button">
+                                All Resources
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="videos-tab" data-bs-toggle="pill" data-bs-target="#videos" type="button">
+                                <i class="fas fa-video me-1"></i>Videos
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="guides-tab" data-bs-toggle="pill" data-bs-target="#guides" type="button">
+                                <i class="fas fa-file-pdf me-1"></i>Guides
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="premium-tab" data-bs-toggle="pill" data-bs-target="#premium" type="button">
+                                <i class="fas fa-crown me-1"></i>Premium
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="resourceTabContent">
+                        <!-- All Resources -->
+                        <div class="tab-pane fade show active" id="all" role="tabpanel">
+                            <div class="row">
+                                {% for resource in resources %}
+                                    <div class="col-lg-4 col-md-6 mb-4">
+                                        <div class="card resource-card {% if resource.is_premium %}premium{% endif %} position-relative">
+                                            {% if resource.is_premium %}
+                                                <div class="premium-badge">
+                                                    <i class="fas fa-crown me-1"></i>Premium
+                                                </div>
+                                            {% endif %}
+                                            
+                                            <div class="card-body text-center">
+                                                <!-- Resource Icon -->
+                                                <div class="resource-icon">
+                                                    {% if resource.resource_type == 'video' %}
+                                                        <i class="fas fa-video video-icon"></i>
+                                                    {% elif resource.resource_type == 'pdf' %}
+                                                        <i class="fas fa-file-pdf pdf-icon"></i>
+                                                    {% elif resource.resource_type == 'image' %}
+                                                        <i class="fas fa-image image-icon"></i>
+                                                    {% elif resource.resource_type == 'audio' %}
+                                                        <i class="fas fa-music audio-icon"></i>
+                                                    {% elif resource.resource_type == 'link' %}
+                                                        <i class="fas fa-external-link-alt link-icon"></i>
+                                                    {% elif resource.resource_type == 'document' %}
+                                                        <i class="fas fa-file-alt document-icon"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-file text-secondary"></i>
+                                                    {% endif %}
+                                                </div>
+
+                                                <h5 class="card-title mb-3">{{ resource.title }}</h5>
+                                                <p class="card-text text-muted mb-4">{{ resource.description|truncatewords:15 }}</p>
+                                                
+                                                <div class="mb-3">
+                                                    <span class="badge bg-secondary">{{ resource.get_resource_type_display }}</span>
+                                                    {% if resource.is_premium %}
+                                                        <span class="badge bg-warning text-dark">Premium</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Free</span>
+                                                    {% endif %}
+                                                    {% if resource.category %}
+                                                        <span class="badge bg-info">{{ resource.category.name }}</span>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Access Control -->
+                                                {% if resource.is_premium and not has_active_subscription %}
+                                                    <button class="btn btn-outline-warning disabled" disabled>
+                                                        <i class="fas fa-lock me-2"></i>Premium Required
+                                                    </button>
+                                                {% else %}
+                                                    {% if resource.resource_type == 'link' %}
+                                                        <a href="{{ resource.file_url }}" target="_blank" class="btn btn-primary">
+                                                            <i class="fas fa-external-link-alt me-2"></i>Visit Link
+                                                        </a>
+                                                    {% elif resource.file %}
+                                                        <a href="{{ resource.file.url }}" download class="btn btn-primary">
+                                                            <i class="fas fa-download me-2"></i>Download
+                                                        </a>
+                                                        {% if resource.resource_type == 'video' or resource.resource_type == 'image' %}
+                                                            <a href="{{ resource.file.url }}" target="_blank" class="btn btn-outline-primary ms-2">
+                                                                <i class="fas fa-eye me-2"></i>View
+                                                            </a>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <button class="btn btn-outline-secondary" disabled>
+                                                            <i class="fas fa-exclamation-triangle me-2"></i>Unavailable
+                                                        </button>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Premium Overlay -->
+                                            {% if resource.is_premium and not has_active_subscription %}
+                                                <div class="locked-overlay">
+                                                    <div class="text-center">
+                                                        <i class="fas fa-lock mb-2" style="font-size: 2rem;"></i>
+                                                        <p class="mb-0">Premium Content</p>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="col-12">
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-folder-open text-muted mb-3" style="font-size: 4rem;"></i>
+                                            <h4 class="text-muted">No Resources Available</h4>
+                                            <p class="text-muted">Check back later for new training materials and guides.</p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Videos Tab -->
+                        <div class="tab-pane fade" id="videos" role="tabpanel">
+                            <div class="row">
+                                {% for resource in resources %}
+                                    {% if resource.resource_type == 'video' %}
+                                        <div class="col-lg-4 col-md-6 mb-4">
+                                            <div class="card resource-card {% if resource.is_premium %}premium{% endif %} position-relative">
+                                                {% if resource.is_premium %}
+                                                    <div class="premium-badge">
+                                                        <i class="fas fa-crown me-1"></i>Premium
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                <div class="card-body text-center">
+                                                    <div class="resource-icon">
+                                                        <i class="fas fa-video video-icon"></i>
+                                                    </div>
+                                                    <h5 class="card-title mb-3">{{ resource.title }}</h5>
+                                                    <p class="card-text text-muted mb-4">{{ resource.description|truncatewords:15 }}</p>
+                                                    
+                                                    {% if resource.is_premium and not has_active_subscription %}
+                                                        <button class="btn btn-outline-warning disabled" disabled>
+                                                            <i class="fas fa-lock me-2"></i>Premium Required
+                                                        </button>
+                                                    {% else %}
+                                                        {% if resource.file %}
+                                                            <a href="{{ resource.file.url }}" target="_blank" class="btn btn-primary">
+                                                                <i class="fas fa-play me-2"></i>Watch Video
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if resource.is_premium and not has_active_subscription %}
+                                                    <div class="locked-overlay">
+                                                        <div class="text-center">
+                                                            <i class="fas fa-lock mb-2" style="font-size: 2rem;"></i>
+                                                            <p class="mb-0">Premium Content</p>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% empty %}
+                                    <div class="col-12">
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-video text-muted mb-3" style="font-size: 4rem;"></i>
+                                            <h4 class="text-muted">No Videos Available</h4>
+                                            <p class="text-muted">Check back later for new workout videos.</p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Guides Tab -->
+                        <div class="tab-pane fade" id="guides" role="tabpanel">
+                            <div class="row">
+                                {% for resource in resources %}
+                                    {% if resource.resource_type == 'pdf' or resource.resource_type == 'document' %}
+                                        <div class="col-lg-4 col-md-6 mb-4">
+                                            <div class="card resource-card {% if resource.is_premium %}premium{% endif %} position-relative">
+                                                {% if resource.is_premium %}
+                                                    <div class="premium-badge">
+                                                        <i class="fas fa-crown me-1"></i>Premium
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                <div class="card-body text-center">
+                                                    <div class="resource-icon">
+                                                        {% if resource.resource_type == 'pdf' %}
+                                                            <i class="fas fa-file-pdf pdf-icon"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-file-alt document-icon"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <h5 class="card-title mb-3">{{ resource.title }}</h5>
+                                                    <p class="card-text text-muted mb-4">{{ resource.description|truncatewords:15 }}</p>
+                                                    
+                                                    {% if resource.is_premium and not has_active_subscription %}
+                                                        <button class="btn btn-outline-warning disabled" disabled>
+                                                            <i class="fas fa-lock me-2"></i>Premium Required
+                                                        </button>
+                                                    {% else %}
+                                                        {% if resource.file %}
+                                                            <a href="{{ resource.file.url }}" download class="btn btn-primary">
+                                                                <i class="fas fa-download me-2"></i>Download Guide
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if resource.is_premium and not has_active_subscription %}
+                                                    <div class="locked-overlay">
+                                                        <div class="text-center">
+                                                            <i class="fas fa-lock mb-2" style="font-size: 2rem;"></i>
+                                                            <p class="mb-0">Premium Content</p>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% empty %}
+                                    <div class="col-12">
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-file-pdf text-muted mb-3" style="font-size: 4rem;"></i>
+                                            <h4 class="text-muted">No Guides Available</h4>
+                                            <p class="text-muted">Check back later for new training guides and PDFs.</p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Premium Tab -->
+                        <div class="tab-pane fade" id="premium" role="tabpanel">
+                            <div class="row">
+                                {% for resource in resources %}
+                                    {% if resource.is_premium %}
+                                        <div class="col-lg-4 col-md-6 mb-4">
+                                            <div class="card resource-card premium position-relative">
+                                                <div class="premium-badge">
+                                                    <i class="fas fa-crown me-1"></i>Premium
+                                                </div>
+                                                
+                                                <div class="card-body text-center">
+                                                    <div class="resource-icon">
+                                                        {% if resource.resource_type == 'video' %}
+                                                            <i class="fas fa-video video-icon"></i>
+                                                        {% elif resource.resource_type == 'pdf' %}
+                                                            <i class="fas fa-file-pdf pdf-icon"></i>
+                                                        {% elif resource.resource_type == 'image' %}
+                                                            <i class="fas fa-image image-icon"></i>
+                                                        {% elif resource.resource_type == 'audio' %}
+                                                            <i class="fas fa-music audio-icon"></i>
+                                                        {% elif resource.resource_type == 'link' %}
+                                                            <i class="fas fa-external-link-alt link-icon"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-file text-secondary"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <h5 class="card-title mb-3">{{ resource.title }}</h5>
+                                                    <p class="card-text text-muted mb-4">{{ resource.description|truncatewords:15 }}</p>
+                                                    
+                                                    {% if not has_active_subscription %}
+                                                        <button class="btn btn-outline-warning disabled" disabled>
+                                                            <i class="fas fa-lock me-2"></i>Premium Required
+                                                        </button>
+                                                    {% else %}
+                                                        {% if resource.resource_type == 'link' %}
+                                                            <a href="{{ resource.file_url }}" target="_blank" class="btn btn-primary">
+                                                                <i class="fas fa-external-link-alt me-2"></i>Visit Link
+                                                            </a>
+                                                        {% elif resource.file %}
+                                                            <a href="{{ resource.file.url }}" download class="btn btn-primary">
+                                                                <i class="fas fa-download me-2"></i>Download
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if not has_active_subscription %}
+                                                    <div class="locked-overlay">
+                                                        <div class="text-center">
+                                                            <i class="fas fa-lock mb-2" style="font-size: 2rem;"></i>
+                                                            <p class="mb-0">Premium Content</p>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% empty %}
+                                    <div class="col-12">
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-crown text-muted mb-3" style="font-size: 4rem;"></i>
+                                            <h4 class="text-muted">No Premium Resources Available</h4>
+                                            <p class="text-muted">Check back later for exclusive premium content.</p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Back to Dashboard -->
+                    <div class="text-center mt-4">
+                        <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!-- templates/accounts/dashboard/trainer_sessions.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Sessions - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .session-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .session-card:hover {
+            transform: translateY(-2px);
+        }
+        .session-item {
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .session-item.scheduled {
+            border-left-color: #ffc107;
+        }
+        .session-item.confirmed {
+            border-left-color: #28a745;
+        }
+        .session-item.completed {
+            border-left-color: #6c757d;
+            opacity: 0.8;
+        }
+        .session-item.cancelled {
+            border-left-color: #dc3545;
+            opacity: 0.7;
+        }
+        .client-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+        .filter-card {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                        {% if upcoming_sessions > 0 %}
+                            <span class="notification-badge">{{ upcoming_sessions }}</span>
+                        {% endif %}
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Training Sessions</h2>
+                            <p class="text-muted">Manage your training sessions and schedule</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'trainer_schedule' %}" class="btn btn-success">
+                                <i class="fas fa-plus me-1"></i>Schedule New Session
+                            </a>
+                            <button class="btn btn-outline-primary" onclick="location.reload()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Session Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="card session-card text-center bg-primary text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-alt mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ total_sessions }}</h3>
+                                    <small>Total Sessions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card session-card text-center bg-success text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-check-circle mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ completed_sessions }}</h3>
+                                    <small>Completed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card session-card text-center bg-warning text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-clock mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ upcoming_sessions }}</h3>
+                                    <small>Upcoming</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card session-card text-center bg-info text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-day mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ page_obj.paginator.count }}</h3>
+                                    <small>Total Results</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="card filter-card mb-4">
+                        <div class="card-body">
+                            <form method="GET" class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label">Status Filter:</label>
+                                    <select class="form-select" name="status">
+                                        <option value="">All Statuses</option>
+                                        <option value="scheduled" {% if status_filter == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                                        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Date Range:</label>
+                                    <select class="form-select" name="date_range">
+                                        <option value="">All Dates</option>
+                                        <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                                        <option value="week" {% if date_filter == 'week' %}selected{% endif %}>This Week</option>
+                                        <option value="month" {% if date_filter == 'month' %}selected{% endif %}>This Month</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-filter me-1"></i>Apply Filters
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <a href="{% url 'trainer_sessions' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Clear Filters
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Sessions List -->
+                    <div class="card session-card">
+                        <div class="card-header bg-transparent border-0">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Session Management</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if page_obj %}
+                                {% for session in page_obj %}
+                                    <div class="session-item {{ session.status }} p-3">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <img src="https://via.placeholder.com/50x50" class="client-avatar me-3" alt="Client">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-0">{{ session.customer.profile.user.get_full_name }}</h6>
+                                                        <small class="text-muted">{{ session.session_type|default:"Personal Training"|title }}</small>
+                                                    </div>
+                                                    <span class="badge bg-{% if session.status == 'completed' %}success{% elif session.status == 'confirmed' %}primary{% elif session.status == 'scheduled' %}warning{% elif session.status == 'cancelled' %}danger{% else %}secondary{% endif %} ms-2">
+                                                        {{ session.get_status_display }}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="row">
+                                                    <div class="col-sm-6">
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <i class="fas fa-calendar me-2 text-muted"></i>
+                                                            <span>{{ session.session_date|date:"l, M j, Y" }}</span>
+                                                        </div>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="fas fa-clock me-2 text-muted"></i>
+                                                            <span>{{ session.session_time|time:"g:i A" }} ({{ session.duration_minutes }} min)</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6">
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <i class="fas fa-user me-2 text-muted"></i>
+                                                            <span>{{ session.customer.profile.user.email }}</span>
+                                                        </div>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="fas fa-phone me-2 text-muted"></i>
+                                                            <span>{{ session.customer.profile.phone|default:"No phone" }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {% if session.notes %}
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-sticky-note me-1"></i>
+                                                            <strong>Notes:</strong> {{ session.notes|truncatewords:20 }}
+                                                        </small>
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                {% if session.trainer_notes %}
+                                                    <div class="mt-1">
+                                                        <small class="text-info">
+                                                            <i class="fas fa-comment me-1"></i>
+                                                            <strong>Your Notes:</strong> {{ session.trainer_notes|truncatewords:15 }}
+                                                        </small>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="col-md-4 text-end">
+                                                <div class="btn-group-vertical w-100">
+                                                    {% if session.status == 'scheduled' %}
+                                                        <button class="btn btn-outline-success btn-sm mb-1" onclick="updateSessionStatus({{ session.id }}, 'confirmed')">
+                                                            <i class="fas fa-check me-1"></i>Confirm
+                                                        </button>
+                                                        <button class="btn btn-outline-danger btn-sm mb-1" onclick="updateSessionStatus({{ session.id }}, 'cancelled')">
+                                                            <i class="fas fa-times me-1"></i>Cancel
+                                                        </button>
+                                                    {% elif session.status == 'confirmed' %}
+                                                        <button class="btn btn-outline-primary btn-sm mb-1" onclick="updateSessionStatus({{ session.id }}, 'completed')">
+                                                            <i class="fas fa-flag-checkered me-1"></i>Complete
+                                                        </button>
+                                                        <button class="btn btn-outline-warning btn-sm mb-1" onclick="updateSessionStatus({{ session.id }}, 'cancelled')">
+                                                            <i class="fas fa-times me-1"></i>Cancel
+                                                        </button>
+                                                    {% endif %}
+                                                    
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-outline-info btn-sm" onclick="viewClientDetails({{ session.customer.id }})">
+                                                            <i class="fas fa-user"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-secondary btn-sm" onclick="addSessionNotes({{ session.id }}, '{{ session.customer.profile.user.get_full_name }}')">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-primary btn-sm" onclick="sendMessage({{ session.customer.id }}, '{{ session.customer.profile.user.get_full_name }}')">
+                                                            <i class="fas fa-envelope"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Pagination -->
+                                {% if page_obj.has_other_pages %}
+                                    <nav aria-label="Sessions pagination" class="mt-4">
+                                        <ul class="pagination justify-content-center">
+                                            {% if page_obj.has_previous %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}">&laquo; First</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}">Previous</a>
+                                                </li>
+                                            {% endif %}
+
+                                            {% for num in page_obj.paginator.page_range %}
+                                                {% if page_obj.number == num %}
+                                                    <li class="page-item active">
+                                                        <span class="page-link">{{ num }}</span>
+                                                    </li>
+                                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}">{{ num }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {% if page_obj.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}">Next</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date_range={{ date_filter }}{% endif %}">Last &raquo;</a>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% endif %}
+
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-calendar-alt text-muted mb-3" style="font-size: 4rem;"></i>
+                                    <h4 class="text-muted">No Sessions Found</h4>
+                                    <p class="text-muted mb-4">No sessions match your current filters or you haven't scheduled any sessions yet.</p>
+                                    <a href="{% url 'trainer_schedule' %}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Schedule Your First Session
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Notes Modal -->
+    <div class="modal fade" id="sessionNotesModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Session Notes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="sessionNotesForm">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" id="sessionId">
+                        <div class="mb-3">
+                            <label class="form-label">Client:</label>
+                            <input type="text" class="form-control" id="sessionClientName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Session Notes:</label>
+                            <textarea class="form-control" id="sessionNotes" rows="5" placeholder="Add notes about this session, client performance, recommendations, etc."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Save Notes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Message Modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{% url 'trainer_messages' %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" name="customer_id" id="messageCustomerId">
+                        <div class="mb-3">
+                            <label class="form-label">To:</label>
+                            <input type="text" class="form-control" id="messageClientName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject:</label>
+                            <input type="text" class="form-control" name="subject" placeholder="Enter subject..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message:</label>
+                            <textarea class="form-control" name="message" rows="6" placeholder="Type your message here..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updateSessionStatus(sessionId, status) {
+            if (confirm(`Are you sure you want to mark this session as ${status}?`)) {
+                fetch(`/trainer/sessions/${sessionId}/update-status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ status: status })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error updating session status: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating session status: ' + error);
+                });
+            }
+        }
+
+        function viewClientDetails(clientId) {
+            window.location.href = `/trainer/clients/${clientId}/`;
+        }
+
+        function addSessionNotes(sessionId, clientName) {
+            document.getElementById('sessionId').value = sessionId;
+            document.getElementById('sessionClientName').value = clientName;
+            document.getElementById('sessionNotes').value = '';
+            new bootstrap.Modal(document.getElementById('sessionNotesModal')).show();
+        }
+
+        function sendMessage(customerId, clientName) {
+            document.getElementById('messageCustomerId').value = customerId;
+            document.getElementById('messageClientName').value = clientName;
+            new bootstrap.Modal(document.getElementById('messageModal')).show();
+        }
+
+        // Handle session notes form submission
+        document.getElementById('sessionNotesForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const sessionId = document.getElementById('sessionId').value;
+            const notes = document.getElementById('sessionNotes').value;
+            
+            fetch(`/trainer/sessions/${sessionId}/add-notes/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || getCookie('csrftoken')
+                },
+                body: JSON.stringify({ notes: notes })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('sessionNotesModal')).hide();
+                    location.reload();
+                } else {
+                    alert('Error saving notes: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error saving notes: ' + error);
+            });
+        });
+
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

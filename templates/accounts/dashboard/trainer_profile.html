@@ -1,0 +1,532 @@
+<!-- templates/accounts/dashboard/trainer_profile.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer Profile - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .profile-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .profile-card:hover {
+            transform: translateY(-2px);
+        }
+        .profile-picture {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .rating-stars {
+            color: #ffc107;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Profile Settings</h2>
+                            <p class="text-muted">Manage your trainer profile and account settings</p>
+                        </div>
+                        <button class="btn btn-outline-primary" onclick="toggleEdit()">
+                            <i class="fas fa-edit me-1"></i>
+                            <span id="editButtonText">Edit Profile</span>
+                        </button>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row">
+                        <!-- Profile Overview -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card profile-card text-center">
+                                <div class="card-body">
+                                    <div class="position-relative d-inline-block mb-3">
+                                        {% if user.profile.profile_picture %}
+                                            <img src="{{ user.profile.profile_picture.url }}" class="profile-picture" alt="Profile Picture">
+                                        {% else %}
+                                            <img src="https://via.placeholder.com/150x150" class="profile-picture" alt="Profile Picture">
+                                        {% endif %}
+                                        <div class="position-absolute bottom-0 end-0">
+                                            <button class="btn btn-primary btn-sm rounded-circle" id="photoChangeBtn" style="display: none;" data-bs-toggle="modal" data-bs-target="#photoModal">
+                                                <i class="fas fa-camera"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <h4 class="mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                                    <p class="text-muted mb-2">Personal Trainer</p>
+                                    
+                                    <!-- Rating Display -->
+                                    <div class="rating-stars mb-3">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= trainer.average_rating %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span class="text-muted ms-2">({{ trainer.average_rating|floatformat:1 }})</span>
+                                    </div>
+
+                                    <!-- Verification Status -->
+                                    {% if trainer.is_verified %}
+                                        <span class="badge bg-success mb-3">
+                                            <i class="fas fa-check-circle me-1"></i>Verified Trainer
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning mb-3">
+                                            <i class="fas fa-clock me-1"></i>Pending Verification
+                                        </span>
+                                    {% endif %}
+
+                                    <!-- Contact Info -->
+                                    <div class="text-start mt-3">
+                                        <p class="mb-1">
+                                            <i class="fas fa-envelope text-muted me-2"></i>
+                                            {{ user.email }}
+                                        </p>
+                                        <p class="mb-1">
+                                            <i class="fas fa-phone text-muted me-2"></i>
+                                            {{ user.profile.phone|default:"Not provided" }}
+                                        </p>
+                                        <p class="mb-0">
+                                            <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                                            {{ trainer.address|default:"Not provided"|truncatewords:5 }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Stats -->
+                            <div class="card stats-card mt-4">
+                                <div class="card-body">
+                                    <h6 class="card-title text-white mb-3">
+                                        <i class="fas fa-chart-line me-2"></i>Quick Stats
+                                    </h6>
+                                    <div class="row text-center">
+                                        <div class="col-6 mb-2">
+                                            <h4 class="mb-0">{{ total_clients|default:0 }}</h4>
+                                            <small>Clients</small>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <h4 class="mb-0">{{ total_sessions|default:0 }}</h4>
+                                            <small>Sessions</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 class="mb-0">{{ trainer.experience_years|default:0 }}</h4>
+                                            <small>Years Exp.</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 class="mb-0">${{ trainer.hourly_rate|default:0 }}</h4>
+                                            <small>Hourly Rate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Form -->
+                        <div class="col-lg-8">
+                            <form method="post" enctype="multipart/form-data" id="profileForm">
+                                {% csrf_token %}
+                                
+                                <!-- Personal Information -->
+                                <div class="card profile-card mb-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        
+                                         <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">First Name</label>
+                                                <input type="text" class="form-control profile-input" name="first_name" value="{{ user.first_name }}" readonly>
+                                            </div>
+                                    
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Last Name</label>
+                                                <input type="text" class="form-control profile-input" name="last_name" value="{{ user.last_name }}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Email Address</label>
+                                                <input type="email" class="form-control profile-input" name="email" value="{{ user.email }}" readonly>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Phone Number</label>
+                                                <input type="text" class="form-control profile-input" name="phone" value="{{ user.profile.phone }}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Address</label>
+                                            <textarea class="form-control profile-input" name="address" rows="2" readonly>{{ trainer.address }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Professional Information -->
+                                <div class="card profile-card mb-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Years of Experience</label>
+                                                <input type="number" class="form-control profile-input" name="experience_years" value="{{ trainer.experience_years }}" min="0" max="50" readonly>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Hourly Rate ($)</label>
+                                                <input type="number" class="form-control profile-input" name="hourly_rate" value="{{ trainer.hourly_rate }}" min="0" step="0.01" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Specializations</label>
+                                            <textarea class="form-control profile-input" name="specializations" rows="3" placeholder="e.g., Weight Loss, Strength Training, Yoga, Nutrition..." readonly>{{ trainer.specializations }}</textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Bio/About Me</label>
+                                            <textarea class="form-control profile-input" name="bio" rows="4" placeholder="Tell your clients about yourself, your approach, and your experience..." readonly>{{ trainer.bio }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Account Settings -->
+                                <div class="card profile-card mb-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Account Settings</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Account Status</label>
+                                                <div class="form-control-plaintext">
+                                                    {% if trainer.is_verified %}
+                                                        <span class="badge bg-success">Verified</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning">Pending Verification</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Member Since</label>
+                                                <div class="form-control-plaintext">
+                                                    {{ trainer.created_at|date:"F Y" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Average Rating</label>
+                                                <div class="form-control-plaintext">
+                                                    <div class="rating-stars">
+                                                        {% for i in "12345" %}
+                                                            {% if forloop.counter <= trainer.average_rating %}
+                                                                <i class="fas fa-star"></i>
+                                                            {% else %}
+                                                                <i class="far fa-star"></i>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        <span class="text-muted ms-2">({{ trainer.average_rating|floatformat:1 }})</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Total Reviews</label>
+                                                <div class="form-control-plaintext">
+                                                    {{ total_reviews|default:0 }} reviews
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="card profile-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <button type="submit" class="btn btn-primary me-2" id="saveButton" style="display: none;">
+                                                    <i class="fas fa-save me-1"></i>Save Changes
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" id="cancelButton" style="display: none;" onclick="cancelEdit()">
+                                                    <i class="fas fa-times me-1"></i>Cancel
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <a href="#" class="btn btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#passwordModal">
+                                                    <i class="fas fa-key me-1"></i>Change Password
+                                                </a>
+                                                <a href="#" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deactivateModal">
+                                                    <i class="fas fa-user-times me-1"></i>Deactivate Account
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Profile Photo Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Profile Photo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Choose New Photo:</label>
+                            <input type="file" class="form-control" name="profile_picture" accept="image/*" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Please choose a professional photo. Recommended size: 400x400 pixels.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i>Upload Photo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="passwordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Current Password:</label>
+                            <input type="password" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password:</label>
+                            <input type="password" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm New Password:</label>
+                            <input type="password" class="form-control" required>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Your password must be at least 8 characters long and include a mix of letters and numbers.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-key me-1"></i>Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deactivate Account Modal -->
+    <div class="modal fade" id="deactivateModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Deactivate Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning!</strong> This action cannot be undone.
+                    </div>
+                    <p>Deactivating your account will:</p>
+                    <ul>
+                        <li>Remove your profile from client searches</li>
+                        <li>Cancel all upcoming sessions</li>
+                        <li>Disable client messaging</li>
+                        <li>Preserve your data for potential reactivation</li>
+                    </ul>
+                    <div class="mb-3">
+                        <label class="form-label">Type "DEACTIVATE" to confirm:</label>
+                        <input type="text" class="form-control" id="deactivateConfirm" placeholder="DEACTIVATE">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDeactivation()">
+                        <i class="fas fa-user-times me-1"></i>Deactivate Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let isEditing = false;
+
+        function toggleEdit() {
+            isEditing = !isEditing;
+            const inputs = document.querySelectorAll('.profile-input');
+            const editButton = document.getElementById('editButtonText');
+            const saveButton = document.getElementById('saveButton');
+            const cancelButton = document.getElementById('cancelButton');
+            const photoChangeBtn = document.getElementById('photoChangeBtn');
+
+            if (isEditing) {
+                inputs.forEach(input => input.removeAttribute('readonly'));
+                editButton.textContent = 'Cancel Edit';
+                saveButton.style.display = 'inline-block';
+                cancelButton.style.display = 'inline-block';
+                photoChangeBtn.style.display = 'block';
+            } else {
+                inputs.forEach(input => input.setAttribute('readonly', 'readonly'));
+                editButton.textContent = 'Edit Profile';
+                saveButton.style.display = 'none';
+                cancelButton.style.display = 'none';
+                photoChangeBtn.style.display = 'none';
+            }
+        }
+
+        function cancelEdit() {
+            // Reload the page to reset all changes
+            location.reload();
+        }
+
+        function confirmDeactivation() {
+            const confirmation = document.getElementById('deactivateConfirm').value;
+            if (confirmation === 'DEACTIVATE') {
+                alert('Account deactivation functionality will be implemented.');
+                // Implement actual deactivation logic here
+            } else {
+                alert('Please type "DEACTIVATE" exactly to confirm.');
+            }
+        }
+
+        // Form submission handling
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            if (!isEditing) {
+                e.preventDefault();
+                return false;
+            }
+            // Allow form submission when editing
+        });
+    </script>
+</body>
+</html>

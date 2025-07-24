@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Dashboard - FitnessHub</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .sidebar {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .sidebar .nav-link {
+        color: white;
+        border-radius: 8px;
+        margin: 2px 0;
+        transition: all 0.3s;
+      }
+      .sidebar .nav-link:hover,
+      .sidebar .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+      .dashboard-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+      }
+      .dashboard-card:hover {
+        transform: translateY(-5px);
+      }
+      .stat-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+      .subscription-card {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+      .progress-card {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      }
+      .notifications-card {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      }
+      .card-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+      }
+      .progress-bar-custom {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+      }
+      .notification-badge {
+        background: #ff4757;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 px-0 sidebar">
+          <div class="p-3">
+            <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+            <div class="text-center mb-4">
+              {% if user.profile.profile_picture %}
+              <img
+                src="{{ user.profile.profile_picture.url }}"
+                class="rounded-circle mb-2"
+                alt="Profile"
+                style="width: 80px; height: 80px; object-fit: cover"
+              />
+              {% else %}
+              <img
+                src="https://via.placeholder.com/80x80"
+                class="rounded-circle mb-2"
+                alt="Profile"
+              />
+              {% endif %}
+              <h6 class="mb-0">
+                {{ user.get_full_name|default:user.username }}
+              </h6>
+              <small class="text-light">Customer</small>
+            </div>
+          </div>
+
+          <nav class="nav flex-column px-3">
+            <a class="nav-link active" href="{% url 'customer_dashboard' %}">
+              <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </a>
+            <a class="nav-link" href="{% url 'customer_profile' %}">
+              <i class="fas fa-user me-2"></i>Profile
+            </a>
+            <a class="nav-link" href="{% url 'subscription_details' %}">
+              <i class="fas fa-crown me-2"></i>Subscription 
+              {% if current_subscription and current_subscription.days_remaining <= 7 %}
+              <span class="notification-badge">!</span>
+              {% endif %}
+            </a>
+            <a class="nav-link" href="{% url 'payment_history' %}">
+              <i class="fas fa-credit-card me-2"></i>Payments
+            </a>
+            <a class="nav-link" href="{% url 'trainer_info' %}">
+              <i class="fas fa-user-tie me-2"></i>My Trainer
+            </a>
+            <a class="nav-link" href="{% url 'workout_progress' %}">
+              <i class="fas fa-chart-line me-2"></i>Progress
+            </a>
+            <a class="nav-link" href="{% url 'goals_management' %}">
+              <i class="fas fa-bullseye me-2"></i>Goals
+            </a>
+            <a class="nav-link" href="{% url 'resources_downloads' %}">
+              <i class="fas fa-download me-2"></i>Resources
+            </a>
+            <a class="nav-link" href="{% url 'notifications_list' %}">
+              <i class="fas fa-bell me-2"></i>Notifications 
+              {% if unread_notifications_count > 0 %}
+              <span class="notification-badge">{{ unread_notifications_count }}</span>
+              {% endif %}
+            </a>
+            <!-- FIXED: Use customer_messages instead of trainer_messages -->
+            <a class="nav-link" href="{% url 'customer_messages' %}">
+              <i class="fas fa-envelope me-2"></i>Messages 
+              {% if unread_messages_count > 0 %}
+              <span class="notification-badge">{{ unread_messages_count }}</span>
+              {% endif %}
+            </a>
+            <hr class="text-light" />
+            <a class="nav-link" href="{% url 'logout' %}">
+              <i class="fas fa-sign-out-alt me-2"></i>Logout
+            </a>
+          </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 ms-auto">
+          <div class="p-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                <h2 class="mb-0">
+                  Welcome back, {{ user.get_full_name|default:user.username }}!
+                </h2>
+                <p class="text-muted">{{ "now"|date:"l, F j, Y" }}</p>
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  class="btn btn-outline-primary"
+                  onclick="location.reload()"
+                >
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Alert Messages -->
+            {% if messages %}
+            {% for message in messages %}
+            <div
+              class="alert alert-{{ message.tags }} alert-dismissible fade show"
+              role="alert"
+            >
+              {{ message }}
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+              ></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+              <div class="col-md-3 mb-3">
+                <div class="card dashboard-card stat-card text-white">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="card-title mb-0">Subscription</h6>
+                        <h4 class="mb-0">
+                          {% if current_subscription and current_subscription.is_active %}
+                          Active 
+                          {% else %}
+                          Inactive 
+                          {% endif %}
+                        </h4>
+                        {% if current_subscription and current_subscription.is_active %}
+                        <small>{{ current_subscription.days_remaining }} days left</small>
+                        {% endif %}
+                      </div>
+                      <i class="fas fa-crown card-icon"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-3 mb-3">
+                <div class="card dashboard-card subscription-card text-white">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="card-title mb-0">Active Goals</h6>
+                        <h4 class="mb-0">{{ active_goals_count|default:0 }}</h4>
+                        <small>In progress</small>
+                      </div>
+                      <i class="fas fa-bullseye card-icon"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-3 mb-3">
+                <div class="card dashboard-card progress-card text-white">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="card-title mb-0">Progress Entries</h6>
+                        <h4 class="mb-0">{{ recent_progress_count|default:0 }}</h4>
+                        <small>This month</small>
+                      </div>
+                      <i class="fas fa-chart-line card-icon"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-3 mb-3">
+                <div class="card dashboard-card notifications-card text-white">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <h6 class="card-title mb-0">Notifications</h6>
+                        <h4 class="mb-0">{{ unread_notifications_count|default:0 }}</h4>
+                        <small>Unread</small>
+                      </div>
+                      <i class="fas fa-bell card-icon"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Main Content Sections -->
+            <div class="row">
+              <!-- Subscription Status -->
+              <div class="col-lg-6 mb-4">
+                <div class="card dashboard-card">
+                  <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">
+                      <i class="fas fa-crown me-2 text-warning"></i>Subscription Status
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    {% if current_subscription and current_subscription.is_active %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <div>
+                        <h6 class="mb-1">{{ current_subscription.plan.name }}</h6>
+                        <p class="text-muted mb-0">
+                          ${{ current_subscription.plan.price }}/{{ current_subscription.plan.duration_days }} days
+                        </p>
+                      </div>
+                      <span class="badge bg-success">Active</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 8px">
+                      {% widthratio current_subscription.days_remaining current_subscription.plan.duration_days 100 as progress_percent %}
+                      <div
+                        class="progress-bar progress-bar-custom"
+                        style="width: {{ progress_percent }}%"
+                      ></div>
+                    </div>
+                    <small class="text-muted">Expires on {{ current_subscription.end_date|date:"M j, Y" }}</small>
+
+                    {% if current_subscription.days_remaining <= 7 %}
+                    <div class="alert alert-warning mt-3 py-2">
+                      <i class="fas fa-exclamation-triangle me-2"></i>
+                      Your subscription expires in {{ current_subscription.days_remaining }} days!
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-4">
+                      <i class="fas fa-crown text-muted mb-3" style="font-size: 3rem"></i>
+                      <h6 class="text-muted">No Active Subscription</h6>
+                      <p class="text-muted mb-3">Unlock premium features with a subscription plan.</p>
+                      <a href="{% url 'subscription_plans' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Subscribe Now
+                      </a>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Trainer Information -->
+              <div class="col-lg-6 mb-4">
+                <div class="card dashboard-card">
+                  <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">
+                      <i class="fas fa-user-tie me-2 text-info"></i>My Trainer
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    {% if trainer_assignment and trainer_assignment.is_active %}
+                    <div class="d-flex align-items-center mb-3">
+                      {% if trainer_assignment.trainer.profile.profile_picture %}
+                      <img
+                        src="{{ trainer_assignment.trainer.profile.profile_picture.url }}"
+                        class="rounded-circle me-3"
+                        alt="Trainer"
+                        style="width: 50px; height: 50px; object-fit: cover"
+                      />
+                      {% else %}
+                      <img
+                        src="https://via.placeholder.com/50x50"
+                        class="rounded-circle me-3"
+                        alt="Trainer"
+                      />
+                      {% endif %}
+                      <div>
+                        <h6 class="mb-0">{{ trainer_assignment.trainer.get_full_name }}</h6>
+                        <small class="text-muted">Certified Trainer</small>
+                      </div>
+                    </div>
+                    <p class="text-muted mb-3">
+                      {{ trainer_assignment.notes|default:"Your dedicated fitness trainer." }}
+                    </p>
+                    <a href="{% url 'trainer_info' %}" class="btn btn-outline-info btn-sm">
+                      <i class="fas fa-info-circle me-1"></i>View Details
+                    </a>
+                    {% else %}
+                    <div class="text-center py-4">
+                      <i class="fas fa-user-tie text-muted mb-3" style="font-size: 3rem"></i>
+                      <h6 class="text-muted">No Trainer Assigned</h6>
+                      <p class="text-muted mb-0">
+                        A trainer will be assigned based on your subscription plan.
+                      </p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Activity Row -->
+            <div class="row">
+              <!-- Active Goals -->
+              <div class="col-lg-4 mb-4">
+                <div class="card dashboard-card h-100">
+                  <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">
+                      <i class="fas fa-bullseye me-2 text-success"></i>Active Goals
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    {% if active_goals %}
+                    {% for goal in active_goals %}
+                    <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ goal.title }}</h6>
+                        <small class="text-muted">{{ goal.progress_percentage|floatformat:0 }}%</small>
+                      </div>
+                      <div class="progress mb-1" style="height: 6px">
+                        <div
+                          class="progress-bar bg-success"
+                          style="width: {{ goal.progress_percentage }}%"
+                        ></div>
+                      </div>
+                      {% if goal.target_date %}
+                      <small class="text-muted">Target: {{ goal.target_date|date:"M j" }}</small>
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                    <a href="{% url 'goals_management' %}" class="btn btn-outline-success btn-sm w-100">
+                      <i class="fas fa-plus me-1"></i>Manage Goals
+                    </a>
+                    {% else %}
+                    <div class="text-center py-4">
+                      <i class="fas fa-bullseye text-muted mb-3" style="font-size: 2rem"></i>
+                      <p class="text-muted mb-3">No active goals yet.</p>
+                      <a href="{% url 'goals_management' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-1"></i>Set Your First Goal
+                      </a>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Progress -->
+              <div class="col-lg-4 mb-4">
+                <div class="card dashboard-card h-100">
+                  <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">
+                      <i class="fas fa-chart-line me-2 text-primary"></i>Recent Progress
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    {% if recent_progress %}
+                    {% for progress in recent_progress %}
+                    <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">{{ progress.date|date:"M j" }}</small>
+                        <span class="badge bg-light text-dark">{{ progress.sessions_attended }} sessions</span>
+                      </div>
+                      {% if progress.weight %}
+                      <small class="text-muted d-block">Weight: {{ progress.weight }}kg</small>
+                      {% endif %}
+                      {% if progress.trainer_notes %}
+                      <small class="text-info d-block">"{{ progress.trainer_notes|truncatewords:8 }}"</small>
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                    <a href="{% url 'workout_progress' %}" class="btn btn-outline-primary btn-sm w-100">
+                      <i class="fas fa-chart-bar me-1"></i>View Full Progress
+                    </a>
+                    {% else %}
+                    <div class="text-center py-4">
+                      <i class="fas fa-chart-line text-muted mb-3" style="font-size: 2rem"></i>
+                      <p class="text-muted mb-3">No progress data yet.</p>
+                      <a href="{% url 'workout_progress' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Log Your Progress
+                      </a>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notifications & Messages -->
+              <div class="col-lg-4 mb-4">
+                <div class="card dashboard-card h-100">
+                  <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">
+                      <i class="fas fa-bell me-2 text-warning"></i>Recent Activity
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    {% if recent_notifications or recent_messages %}
+                    <!-- Notifications -->
+                    {% for notification in recent_notifications|slice:":3" %}
+                    <div class="mb-3 pb-3 border-bottom">
+                      <div class="d-flex align-items-start">
+                        <i class="fas fa-bell text-warning me-2 mt-1"></i>
+                        <div class="flex-grow-1">
+                          <h6 class="mb-1 fs-6">{{ notification.title }}</h6>
+                          <p class="text-muted mb-1 small">{{ notification.message|truncatewords:10 }}</p>
+                          <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- Messages -->
+                    {% for message in recent_messages|slice:":2" %}
+                    <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                      <div class="d-flex align-items-start">
+                        <i class="fas fa-envelope text-info me-2 mt-1"></i>
+                        <div class="flex-grow-1">
+                          <h6 class="mb-1 fs-6">{{ message.subject }}</h6>
+                          <p class="text-muted mb-1 small">From: {{ message.trainer.get_full_name }}</p>
+                          <small class="text-muted">{{ message.created_at|timesince }} ago</small>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="row g-2">
+                      {% if recent_notifications %}
+                      <div class="col-6">
+                        <a href="{% url 'notifications_list' %}" class="btn btn-outline-warning btn-sm w-100">
+                          <i class="fas fa-bell me-1"></i>All Alerts
+                        </a>
+                      </div>
+                      {% endif %}
+                      {% if recent_messages %}
+                      <div class="col-6">
+                        <a href="{% url 'customer_messages' %}" class="btn btn-outline-info btn-sm w-100">
+                          <i class="fas fa-envelope me-1"></i>Messages
+                        </a>
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                      <i class="fas fa-bell text-muted mb-3" style="font-size: 2rem"></i>
+                      <p class="text-muted mb-0">No recent activity.</p>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+              <div class="col-12">
+                <div class="card dashboard-card">
+                  <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">
+                      <i class="fas fa-bolt me-2 text-danger"></i>Quick Actions
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-md-2 col-6">
+                        <a
+                          href="{% url 'workout_progress' %}"
+                          class="btn btn-outline-primary w-100 h-100 d-flex flex-column justify-content-center"
+                        >
+                          <i class="fas fa-plus-circle mb-2"></i>
+                          <small>Log Progress</small>
+                        </a>
+                      </div>
+                      <div class="col-md-2 col-6">
+                        <a
+                          href="{% url 'goals_management' %}"
+                          class="btn btn-outline-success w-100 h-100 d-flex flex-column justify-content-center"
+                        >
+                          <i class="fas fa-bullseye mb-2"></i>
+                          <small>Set Goal</small>
+                        </a>
+                      </div>
+                      <div class="col-md-2 col-6">
+                        <a
+                          href="{% url 'subscription_plans' %}"
+                          class="btn btn-outline-warning w-100 h-100 d-flex flex-column justify-content-center"
+                        >
+                          <i class="fas fa-crown mb-2"></i>
+                          <small>Upgrade Plan</small>
+                        </a>
+                      </div>
+                      <div class="col-md-2 col-6">
+                        <a
+                          href="{% url 'resources_downloads' %}"
+                          class="btn btn-outline-info w-100 h-100 d-flex flex-column justify-content-center"
+                        >
+                          <i class="fas fa-download mb-2"></i>
+                          <small>Resources</small>
+                        </a>
+                      </div>
+                      <div class="col-md-2 col-6">
+                        <a
+                          href="{% url 'customer_messages' %}"
+                          class="btn btn-outline-secondary w-100 h-100 d-flex flex-column justify-content-center"
+                        >
+                          <i class="fas fa-comments mb-2"></i>
+                          <small>Messages</small>
+                        </a>
+                      </div>
+                      <div class="col-md-2 col-6">
+                        <a
+                          href="{% url 'customer_profile' %}"
+                          class="btn btn-outline-dark w-100 h-100 d-flex flex-column justify-content-center"
+                        >
+                          <i class="fas fa-cog mb-2"></i>
+                          <small>Settings</small>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

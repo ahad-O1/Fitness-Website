@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Messages - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .message-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .message-card:hover {
+            transform: translateY(-2px);
+        }
+        .message-item {
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .message-item.unread {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        .message-item:hover {
+            background: #e9ecef;
+        }
+        .trainer-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .message-preview {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                        <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                        <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                        {% if current_subscription and current_subscription.days_remaining <= 7 %}
+                        <span class="notification-badge">!</span>
+                        {% endif %}
+                    </a>
+                    <a class="nav-link" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                        {% if unread_notifications_count > 0 %}
+                        <span class="notification-badge">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </a>
+                    <!-- FIXED: Use customer_messages instead of trainer_messages -->
+                    <a class="nav-link active" href="{% url 'customer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                        {% if unread_messages_count > 0 %}
+                        <span class="notification-badge">{{ unread_messages_count }}</span>
+                        {% endif %}
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Trainer Messages</h2>
+                            <p class="text-muted">Communication with your personal trainer</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+                                <i class="fas fa-check-double me-1"></i>Mark All Read
+                            </button>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#composeModal">
+                                <i class="fas fa-edit me-1"></i>Compose Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Messages Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="card message-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-envelope text-primary mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Total Messages</h5>
+                                    <h3 class="text-primary">{{ total_count }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card message-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-envelope-open text-info mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Unread</h5>
+                                    <h3 class="text-info">{{ unread_count }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card message-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-day text-success mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Today</h5>
+                                    <h3 class="text-success">{{ today_count }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages List -->
+                    <div class="card message-card">
+                        <div class="card-header bg-transparent border-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Messages from Your Trainer</h5>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="messageFilter">
+                                        <option value="all">All Messages</option>
+                                        <option value="unread">Unread Only</option>
+                                        <option value="today">Today</option>
+                                        <option value="week">This Week</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if page_obj %}
+                                {% for message in page_obj %}
+                                    <div class="message-item {% if not message.is_read %}unread{% endif %} p-3" 
+                                         data-message-id="{{ message.id }}" 
+                                         onclick="openMessage({{ message.id }})">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                {% if message.trainer.profile.profile_picture %}
+                                                <img src="{{ message.trainer.profile.profile_picture.url }}" class="trainer-avatar" alt="Trainer">
+                                                {% else %}
+                                                <img src="https://via.placeholder.com/50x50" class="trainer-avatar" alt="Trainer">
+                                                {% endif %}
+                                            </div>
+                                            <div class="col">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="mb-1 {% if not message.is_read %}fw-bold{% endif %}">
+                                                            {{ message.trainer.get_full_name }}
+                                                        </h6>
+                                                        <h6 class="mb-0 {% if not message.is_read %}text-primary fw-bold{% endif %}">
+                                                            {{ message.subject }}
+                                                        </h6>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        {% if not message.is_read %}
+                                                            <span class="badge bg-primary mb-1">New</span>
+                                                        {% endif %}
+                                                        <div>
+                                                            <small class="text-muted">{{ message.created_at|date:"M j, Y" }}</small>
+                                                        </div>
+                                                        <div>
+                                                            <small class="text-muted">{{ message.created_at|time:"g:i A" }}</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p class="text-muted message-preview mb-0">
+                                                    {{ message.message|truncatewords:20 }}
+                                                </p>
+                                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock me-1"></i>{{ message.created_at|timesince }} ago
+                                                    </small>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" onclick="event.stopPropagation()">
+                                                            <i class="fas fa-ellipsis-h"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            {% if not message.is_read %}
+                                                                <li><a class="dropdown-item" href="#" onclick="markAsRead({{ message.id }}); event.stopPropagation();">
+                                                                    <i class="fas fa-check me-2"></i>Mark as Read
+                                                                </a></li>
+                                                            {% else %}
+                                                                <li><a class="dropdown-item" href="#" onclick="markAsUnread({{ message.id }}); event.stopPropagation();">
+                                                                    <i class="fas fa-envelope me-2"></i>Mark as Unread
+                                                                </a></li>
+                                                            {% endif %}
+                                                            <li><a class="dropdown-item" href="#" onclick="replyToMessage({{ message.id }}); event.stopPropagation();">
+                                                                <i class="fas fa-reply me-2"></i>Reply
+                                                            </a></li>
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteMessage({{ message.id }}); event.stopPropagation();">
+                                                                <i class="fas fa-trash me-2"></i>Delete
+                                                            </a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Pagination -->
+                                {% if page_obj.has_other_pages %}
+                                    <nav aria-label="Messages pagination" class="mt-4">
+                                        <ul class="pagination justify-content-center">
+                                            {% if page_obj.has_previous %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                                </li>
+                                            {% endif %}
+
+                                            {% for num in page_obj.paginator.page_range %}
+                                                {% if page_obj.number == num %}
+                                                    <li class="page-item active">
+                                                        <span class="page-link">{{ num }}</span>
+                                                    </li>
+                                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {% if page_obj.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% endif %}
+
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-comments text-muted mb-3" style="font-size: 4rem;"></i>
+                                    <h4 class="text-muted">No Messages Yet</h4>
+                                    <p class="text-muted mb-4">Your trainer will send you updates, tips, and feedback here.</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#composeModal">
+                                        <i class="fas fa-edit me-2"></i>Send Your First Message
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Detail Modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalTitle">Message Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="messageModalBody">
+                    <!-- Message content will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" onclick="replyToCurrentMessage()">
+                        <i class="fas fa-reply me-1"></i>Reply
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compose Message Modal -->
+    <div class="modal fade" id="composeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Compose Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">To:</label>
+                            <input type="text" class="form-control" value="Your Personal Trainer" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject:</label>
+                            <input type="text" class="form-control" name="subject" placeholder="Enter subject..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message:</label>
+                            <textarea class="form-control" name="message" rows="6" placeholder="Type your message here..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentMessageId = null;
+
+        function openMessage(messageId) {
+            // Mark message as read
+            markAsRead(messageId);
+            
+            // In a real implementation, fetch message details via AJAX
+            currentMessageId = messageId;
+            
+            // Sample message content
+            const modalTitle = document.getElementById('messageModalTitle');
+            const modalBody = document.getElementById('messageModalBody');
+            
+            modalTitle.textContent = 'Weekly Progress Update';
+            modalBody.innerHTML = `
+                <div class="d-flex align-items-center mb-3">
+                    <img src="https://via.placeholder.com/60x60" class="rounded-circle me-3" alt="Trainer">
+                    <div>
+                        <h6 class="mb-0">Sarah Johnson</h6>
+                        <small class="text-muted">Personal Trainer</small>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Subject:</strong> Weekly Progress Update
+                </div>
+                <div class="mb-3">
+                    <strong>Date:</strong> ${new Date().toLocaleDateString()}
+                </div>
+                <hr>
+                <div>
+                    <p>Hi there!</p>
+                    <p>Great work this week! I've noticed significant improvement in your form and endurance. Keep up the excellent work!</p>
+                    <p>For next week, let's focus on:</p>
+                    <ul>
+                        <li>Increasing cardio intensity</li>
+                        <li>Adding more core exercises</li>
+                        <li>Maintaining proper hydration</li>
+                    </ul>
+                    <p>Feel free to reach out if you have any questions!</p>
+                    <p>Best regards,<br>Sarah</p>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('messageModal')).show();
+        }
+
+        function markAsRead(messageId) {
+            fetch(`{% url "customer_messages" %}?mark_read=${messageId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const item = document.querySelector(`[data-message-id="${messageId}"]`);
+                        item.classList.remove('unread');
+                        const badge = item.querySelector('.badge.bg-primary');
+                        if (badge) badge.remove();
+                        updateCounters();
+                    }
+                });
+        }
+
+        function markAsUnread(messageId) {
+            console.log('Mark as unread:', messageId);
+            // Implementation for marking as unread
+        }
+
+        function deleteMessage(messageId) {
+            if (confirm('Are you sure you want to delete this message?')) {
+                console.log('Delete message:', messageId);
+                // Implementation for deleting message
+            }
+        }
+
+        function replyToMessage(messageId) {
+            console.log('Reply to message:', messageId);
+            // Implementation for reply functionality
+        }
+
+        function replyToCurrentMessage() {
+            if (currentMessageId) {
+                replyToMessage(currentMessageId);
+            }
+        }
+
+        function markAllAsRead() {
+            if (confirm('Mark all messages as read?')) {
+                document.querySelectorAll('.message-item.unread').forEach(item => {
+                    item.classList.remove('unread');
+                    const badge = item.querySelector('.badge.bg-primary');
+                    if (badge) badge.remove();
+                });
+                updateCounters();
+            }
+        }
+
+        function updateCounters() {
+            const unreadCount = document.querySelectorAll('.message-item.unread').length;
+            // Update counters in the summary cards
+        }
+
+        // Filter messages
+        document.getElementById('messageFilter').addEventListener('change', function() {
+            const filter = this.value;
+            const messages = document.querySelectorAll('.message-item');
+            
+            messages.forEach(message => {
+                switch(filter) {
+                    case 'all':
+                        message.style.display = 'block';
+                        break;
+                    case 'unread':
+                        message.style.display = message.classList.contains('unread') ? 'block' : 'none';
+                        break;
+                    case 'today':
+                        // Implementation for today filter
+                        message.style.display = 'block';
+                        break;
+                    case 'week':
+                        // Implementation for week filter
+                        message.style.display = 'block';
+                        break;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!-- templates/accounts/dashboard/trainer_clients.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Clients - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .client-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .client-card:hover {
+            transform: translateY(-5px);
+        }
+        .client-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .stats-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+        .progress-circle {
+            width: 50px;
+            height: 50px;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                        {% if total_clients > 0 %}
+                            <span class="notification-badge">{{ total_clients }}</span>
+                        {% endif %}
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">My Clients</h2>
+                            <p class="text-muted">Manage and track your assigned clients</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form class="d-flex" method="GET">
+                                <input class="form-control me-2" type="search" name="search" placeholder="Search clients..." value="{{ search_query }}">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Client Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="card client-card text-center bg-primary text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-users mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ total_clients }}</h3>
+                                    <small>Total Clients</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card client-card text-center bg-success text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-user-check mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ active_subscriptions }}</h3>
+                                    <small>Active Subscriptions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card client-card text-center bg-info text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-plus mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ page_obj.paginator.count }}</h3>
+                                    <small>Showing Results</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clients Grid -->
+                    {% if page_obj %}
+                        <div class="row">
+                            {% for assignment in page_obj %}
+                                <div class="col-lg-4 col-md-6 mb-4">
+                                    <div class="card client-card position-relative">
+                                        {% if assignment.customer.subscription.is_active %}
+                                            <span class="badge bg-success stats-badge">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary stats-badge">Inactive</span>
+                                        {% endif %}
+                                        
+                                        <div class="card-body text-center">
+                                            <!-- Client Avatar -->
+                                            {% if assignment.customer.profile.profile_picture %}
+                                                <img src="{{ assignment.customer.profile.profile_picture.url }}" class="client-avatar mb-3" alt="Client">
+                                            {% else %}
+                                                <img src="https://via.placeholder.com/80x80" class="client-avatar mb-3" alt="Client">
+                                            {% endif %}
+                                            
+                                            <h5 class="card-title mb-2">{{ assignment.customer.profile.user.get_full_name }}</h5>
+                                            <p class="text-muted mb-3">{{ assignment.customer.profile.user.email }}</p>
+                                            
+                                            <!-- Client Info -->
+                                            <div class="row text-center mb-3">
+                                                <div class="col-4">
+                                                    <small class="text-muted d-block">Age</small>
+                                                    <strong>
+                                                        {% if assignment.customer.date_of_birth %}
+                                                            {{ assignment.customer.date_of_birth|timesince|truncatewords:1 }}
+                                                        {% else %}
+                                                            N/A
+                                                        {% endif %}
+                                                    </strong>
+                                                </div>
+                                                <div class="col-4">
+                                                    <small class="text-muted d-block">Level</small>
+                                                    <strong>{{ assignment.customer.fitness_level|title }}</strong>
+                                                </div>
+                                                <div class="col-4">
+                                                    <small class="text-muted d-block">Since</small>
+                                                    <strong>{{ assignment.assigned_date|date:"M Y" }}</strong>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Fitness Goals -->
+                                            {% if assignment.customer.fitness_goals %}
+                                                <p class="text-muted small mb-3">
+                                                    <i class="fas fa-bullseye me-1"></i>
+                                                    {{ assignment.customer.fitness_goals|truncatewords:8 }}
+                                                </p>
+                                            {% endif %}
+                                            
+                                            <!-- Quick Stats -->
+                                            <div class="row text-center mb-3">
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Sessions</small>
+                                                    <strong class="text-primary">{{ assignment.customer.sessions.count|default:0 }}</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Progress Entries</small>
+                                                    <strong class="text-success">{{ assignment.customer.progress.count|default:0 }}</strong>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Action Buttons -->
+                                            <div class="btn-group w-100 mb-2" role="group">
+                                                <a href="{% url 'trainer_client_detail' assignment.customer.id %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                <a href="{% url 'view_client_progress' assignment.customer.id %}" class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-chart-line"></i> Progress
+                                                </a>
+                                                <button class="btn btn-outline-info btn-sm" onclick="scheduleSession({{ assignment.customer.id }})">
+                                                    <i class="fas fa-calendar-plus"></i> Schedule
+                                                </button>
+                                            </div>
+                                            
+                                            <button class="btn btn-primary btn-sm w-100" onclick="sendMessage({{ assignment.customer.id }}, '{{ assignment.customer.profile.user.get_full_name }}')">
+                                                <i class="fas fa-envelope me-1"></i>Send Message
+                                            </button>
+                                            
+                                            <!-- Assignment Notes -->
+                                            {% if assignment.notes %}
+                                                <div class="mt-3 p-2 bg-light rounded">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-sticky-note me-1"></i>
+                                                        {{ assignment.notes|truncatewords:15 }}
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                            <nav aria-label="Clients pagination" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">&laquo; First</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                                        </li>
+                                    {% endif %}
+
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last &raquo;</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-users text-muted mb-3" style="font-size: 4rem;"></i>
+                            <h4 class="text-muted">No Clients Assigned</h4>
+                            <p class="text-muted mb-4">You don't have any clients assigned yet. Contact your administrator for client assignments.</p>
+                            <a href="{% url 'trainer_dashboard' %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Message Modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{% url 'trainer_messages' %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" name="customer_id" id="messageCustomerId">
+                        <div class="mb-3">
+                            <label class="form-label">To:</label>
+                            <input type="text" class="form-control" id="messageClientName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject:</label>
+                            <input type="text" class="form-control" name="subject" placeholder="Enter subject..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message:</label>
+                            <textarea class="form-control" name="message" rows="6" placeholder="Type your message here..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Session Modal -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Schedule Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{% url 'trainer_schedule' %}" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" name="customer_id" id="scheduleCustomerId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Session Date:</label>
+                                <input type="date" class="form-control" name="session_date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Session Time:</label>
+                                <input type="time" class="form-control" name="session_time" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Session Type:</label>
+                                <select class="form-select" name="session_type">
+                                    <option value="personal">Personal Training</option>
+                                    <option value="consultation">Consultation</option>
+                                    <option value="assessment">Fitness Assessment</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Duration (minutes):</label>
+                                <select class="form-select" name="duration_minutes">
+                                    <option value="30">30 minutes</option>
+                                    <option value="60" selected>60 minutes</option>
+                                    <option value="90">90 minutes</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes:</label>
+                            <textarea class="form-control" name="notes" rows="3" placeholder="Session notes or special instructions..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-calendar-plus me-1"></i>Schedule Session
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function sendMessage(customerId, clientName) {
+            document.getElementById('messageCustomerId').value = customerId;
+            document.getElementById('messageClientName').value = clientName;
+            new bootstrap.Modal(document.getElementById('messageModal')).show();
+        }
+
+        function scheduleSession(customerId) {
+            document.getElementById('scheduleCustomerId').value = customerId;
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelector('input[name="session_date"]').min = today;
+            
+            new bootstrap.Modal(document.getElementById('scheduleModal')).show();
+        }
+    </script>
+</body>
+</html>

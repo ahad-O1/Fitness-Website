@@ -1,0 +1,384 @@
+<!-- templates/accounts/dashboard/trainer_resources.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resources - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .resource-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .resource-card:hover {
+            transform: translateY(-2px);
+        }
+        .resource-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Training Resources</h2>
+                            <p class="text-muted">Access training materials and resources</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" style="width: auto;">
+                                <option>All Categories</option>
+                                <option>Workout Plans</option>
+                                <option>Nutrition Guides</option>
+                                <option>Exercise Videos</option>
+                                <option>Assessment Forms</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Resources Grid -->
+                    <div class="row">
+                        {% if resources %}
+                            {% for resource in resources %}
+                                <div class="col-lg-4 col-md-6 mb-4">
+                                    <div class="card resource-card h-100">
+                                        <div class="card-body text-center">
+                                            <div class="resource-icon text-primary">
+                                                {% if resource.resource_type == 'video' %}
+                                                    <i class="fas fa-play-circle"></i>
+                                                {% elif resource.resource_type == 'pdf' %}
+                                                    <i class="fas fa-file-pdf"></i>
+                                                {% elif resource.resource_type == 'image' %}
+                                                    <i class="fas fa-image"></i>
+                                                {% elif resource.resource_type == 'audio' %}
+                                                    <i class="fas fa-headphones"></i>
+                                                {% elif resource.resource_type == 'link' %}
+                                                    <i class="fas fa-external-link-alt"></i>
+                                                {% else %}
+                                                    <i class="fas fa-file"></i>
+                                                {% endif %}
+                                                {% if resource.is_premium %}
+                                                    <span class="badge bg-warning position-absolute top-0 end-0 m-2">Premium</span>
+                                                {% endif %}
+                                            </div>
+                                            <h5 class="card-title">{{ resource.title }}</h5>
+                                            <p class="card-text text-muted">{{ resource.description|truncatewords:15 }}</p>
+                                            <div class="mb-3">
+                                                <span class="badge bg-secondary">{{ resource.get_resource_type_display }}</span>
+                                                {% if resource.category %}
+                                                    <span class="badge bg-info">{{ resource.category.name }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-transparent text-center">
+                                            {% if resource.file %}
+                                                <a href="{{ resource.file.url }}" class="btn btn-primary btn-sm" target="_blank">
+                                                    <i class="fas fa-download me-1"></i>Download
+                                                </a>
+                                            {% elif resource.external_url %}
+                                                <a href="{{ resource.external_url }}" class="btn btn-primary btn-sm" target="_blank">
+                                                    <i class="fas fa-external-link-alt me-1"></i>View
+                                                </a>
+                                            {% else %}
+                                                <button class="btn btn-secondary btn-sm" disabled>
+                                                    <i class="fas fa-times me-1"></i>Unavailable
+                                                </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-info btn-sm" onclick="shareResource('{{ resource.title }}', '{{ resource.description }}')">
+                                                <i class="fas fa-share"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Default Resources when none exist -->
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card resource-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="resource-icon text-primary">
+                                            <i class="fas fa-dumbbell"></i>
+                                        </div>
+                                        <h5 class="card-title">Beginner Workout Plans</h5>
+                                        <p class="card-text text-muted">Comprehensive workout plans for beginners starting their fitness journey.</p>
+                                        <div class="mb-3">
+                                            <span class="badge bg-secondary">PDF</span>
+                                            <span class="badge bg-info">Workout Plans</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card resource-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="resource-icon text-success">
+                                            <i class="fas fa-apple-alt"></i>
+                                        </div>
+                                        <h5 class="card-title">Nutrition Guidelines</h5>
+                                        <p class="card-text text-muted">Essential nutrition information and meal planning guides for healthy living.</p>
+                                        <div class="mb-3">
+                                            <span class="badge bg-secondary">PDF</span>
+                                            <span class="badge bg-info">Nutrition</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card resource-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="resource-icon text-warning">
+                                            <i class="fas fa-play-circle"></i>
+                                        </div>
+                                        <h5 class="card-title">Exercise Technique Videos</h5>
+                                        <p class="card-text text-muted">Video demonstrations of proper exercise form and technique.</p>
+                                        <div class="mb-3">
+                                            <span class="badge bg-secondary">Video</span>
+                                            <span class="badge bg-info">Exercise</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button class="btn btn-primary btn-sm">
+                                            <i class="fas fa-play me-1"></i>Watch
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card resource-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="resource-icon text-info">
+                                            <i class="fas fa-clipboard-list"></i>
+                                        </div>
+                                        <h5 class="card-title">Assessment Forms</h5>
+                                        <p class="card-text text-muted">Client assessment forms and progress tracking templates.</p>
+                                        <div class="mb-3">
+                                            <span class="badge bg-secondary">PDF</span>
+                                            <span class="badge bg-info">Forms</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card resource-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="resource-icon text-danger">
+                                            <i class="fas fa-heart"></i>
+                                        </div>
+                                        <h5 class="card-title">Injury Prevention</h5>
+                                        <p class="card-text text-muted">Guidelines and tips for preventing common workout injuries.</p>
+                                        <div class="mb-3">
+                                            <span class="badge bg-secondary">PDF</span>
+                                            <span class="badge bg-info">Safety</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card resource-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="resource-icon text-dark">
+                                            <i class="fas fa-brain"></i>
+                                            <span class="badge bg-warning position-absolute top-0 end-0 m-2">Premium</span>
+                                        </div>
+                                        <h5 class="card-title">Mental Health & Wellness</h5>
+                                        <p class="card-text text-muted">Resources on mental health, motivation, and wellness coaching.</p>
+                                        <div class="mb-3">
+                                            <span class="badge bg-secondary">PDF</span>
+                                            <span class="badge bg-info">Wellness</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <button class="btn btn-primary btn-sm">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Resource Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Share Resource</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Resource Title:</label>
+                        <input type="text" class="form-control" id="shareTitle" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Share with clients:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="shareAll">
+                            <label class="form-check-label" for="shareAll">
+                                Share with all my clients
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Additional message (optional):</label>
+                        <textarea class="form-control" rows="3" placeholder="Add a personal message to your clients..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">
+                        <i class="fas fa-share me-1"></i>Share Resource
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function shareResource(title, description) {
+            document.getElementById('shareTitle').value = title;
+            new bootstrap.Modal(document.getElementById('shareModal')).show();
+        }
+    </script>
+</body>
+</html>

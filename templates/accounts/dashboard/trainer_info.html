@@ -1,0 +1,584 @@
+{% load custom_filters %}
+<!-- templates/accounts/dashboard/trainer_info.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Trainer - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .trainer-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .trainer-card:hover {
+            transform: translateY(-2px);
+        }
+        .trainer-avatar {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+        }
+        .rating-stars {
+            color: #ffc107;
+        }
+        .contact-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .achievement-badge {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border-radius: 50px;
+            padding: 0.5rem 1rem;
+            display: inline-block;
+            margin: 0.2rem;
+            font-size: 0.85rem;
+        }
+        .session-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                    </a>
+                    <a class="nav-link" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a class="nav-link" href="{% url 'customer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">My Trainer</h2>
+                            <p class="text-muted">Get to know your dedicated fitness trainer</p>
+                        </div>
+                        <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if trainer_assignment and trainer_assignment.is_active %}
+                        <!-- Trainer Profile -->
+                        <div class="row">
+                            <!-- Main Trainer Info -->
+                            <div class="col-lg-8 mb-4">
+                                <div class="card trainer-card">
+                                    <div class="card-body p-4">
+                                        <div class="row">
+                                            <div class="col-md-4 text-center mb-4">
+                                                {% if trainer_assignment.trainer.profile.profile_picture %}
+                                                    <img src="{{ trainer_assignment.trainer.profile.profile_picture.url }}" class="rounded-circle trainer-avatar mb-3" alt="Trainer Photo">
+                                                {% else %}
+                                                    <img src="https://via.placeholder.com/150x150" class="rounded-circle trainer-avatar mb-3" alt="Trainer Photo">
+                                                {% endif %}
+                                                <h4 class="mb-1">{{ trainer_assignment.trainer.get_full_name }}</h4>
+                                                <p class="text-muted mb-2">
+                                                    {% if trainer_assignment.trainer.specializations %}
+                                                        {{ trainer_assignment.trainer.specializations|truncatewords:3 }}
+                                                    {% else %}
+                                                        Certified Personal Trainer
+                                                    {% endif %}
+                                                </p>
+                                                {% if trainer_assignment.trainer.average_rating %}
+                                                    <div class="rating-stars mb-2">
+                                                        {% for i in "12345"|make_list %}
+                                                            {% if forloop.counter <= trainer_assignment.trainer.average_rating %}
+                                                                <i class="fas fa-star"></i>
+                                                            {% else %}
+                                                                <i class="far fa-star"></i>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        <span class="text-muted ms-1">({{ trainer_assignment.trainer.average_rating|floatformat:1 }})</span>
+                                                    </div>
+                                                {% endif %}
+                                                {% if trainer_assignment.trainer.is_verified %}
+                                                    <span class="badge bg-success">Verified Trainer</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-8">
+                                                <h5 class="mb-3">About Your Trainer</h5>
+                                                <p class="text-muted">
+                                                    {% if trainer_assignment.trainer.bio %}
+                                                        {{ trainer_assignment.trainer.bio }}
+                                                    {% else %}
+                                                        Your dedicated fitness trainer with years of experience in helping clients achieve their fitness goals. Specialized in strength training, weight loss, and overall wellness.
+                                                    {% endif %}
+                                                </p>
+                                                
+                                                <div class="row mb-3">
+                                                    <div class="col-sm-6">
+                                                        <h6><i class="fas fa-calendar me-2 text-primary"></i>Experience</h6>
+                                                        <p class="text-muted">
+                                                            {% if trainer_assignment.trainer.experience_years %}
+                                                                {{ trainer_assignment.trainer.experience_years }}+ Years
+                                                            {% else %}
+                                                                5+ Years
+                                                            {% endif %}
+                                                        </p>
+                                                    </div>
+                                                    <div class="col-sm-6">
+                                                        <h6><i class="fas fa-users me-2 text-success"></i>Clients Trained</h6>
+                                                        <p class="text-muted">200+ Happy Clients</p>
+                                                    </div>
+                                                </div>
+
+                                                {% if trainer_assignment.trainer.specializations %}
+                                                    <div class="mb-3">
+                                                        <h6><i class="fas fa-dumbbell me-2 text-warning"></i>Specializations</h6>
+                                                        <div>
+                                                            {% for specialization in trainer_assignment.trainer.specializations|split:"," %}
+                                                                <span class="achievement-badge">{{ specialization|title|trim }}</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+
+                                                <div class="mb-3">
+                                                    <h6><i class="fas fa-certificate me-2 text-info"></i>Certifications</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li><i class="fas fa-check text-success me-2"></i>ACSM Certified Personal Trainer</li>
+                                                        <li><i class="fas fa-check text-success me-2"></i>NASM Corrective Exercise Specialist</li>
+                                                        <li><i class="fas fa-check text-success me-2"></i>Nutrition Coaching Certification</li>
+                                                    </ul>
+                                                </div>
+
+                                                {% if trainer_assignment.notes %}
+                                                    <div class="mb-3">
+                                                        <h6><i class="fas fa-sticky-note me-2 text-secondary"></i>Assignment Notes</h6>
+                                                        <p class="text-muted">{{ trainer_assignment.notes }}</p>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Training Schedule & History -->
+                                <div class="card trainer-card mt-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Training Schedule & History</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Upcoming Sessions</h6>
+                                                {% if upcoming_sessions %}
+                                                    {% for session in upcoming_sessions %}
+                                                        <div class="mb-3">
+                                                            <div class="session-card p-3">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <strong>{{ session.session_type|default:"Training Session" }}</strong>
+                                                                        <br><small class="text-muted">{{ session.scheduled_date|date:"M j, Y" }} at {{ session.scheduled_time|time:"g:i A" }}</small>
+                                                                        {% if session.notes %}
+                                                                            <br><small class="text-info">{{ session.notes|truncatewords:8 }}</small>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <span class="badge bg-{% if session.is_confirmed %}success{% else %}warning{% endif %}">
+                                                                        {% if session.is_confirmed %}Confirmed{% else %}Pending{% endif %}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <div class="session-card p-3 mb-3">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <strong>Upper Body Workout</strong>
+                                                                <br><small class="text-muted">Tomorrow, 6:00 PM</small>
+                                                            </div>
+                                                            <span class="badge bg-primary">Scheduled</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="session-card p-3 mb-3">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <strong>Cardio & Core</strong>
+                                                                <br><small class="text-muted">Friday, 7:00 AM</small>
+                                                            </div>
+                                                            <span class="badge bg-info">Planned</span>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                                
+                                                <a href="{% url 'schedule_session' %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-calendar-plus me-1"></i>Schedule New Session
+                                                </a>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Training Statistics</h6>
+                                                <div class="stats-card p-3">
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>Total Sessions:</span>
+                                                            <strong>{{ total_sessions|default:24 }}</strong>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>This Month:</span>
+                                                            <strong>{{ monthly_sessions|default:8 }}</strong>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>Attendance Rate:</span>
+                                                            <strong class="text-success">{{ attendance_rate|default:95 }}%</strong>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span>Partnership Duration:</span>
+                                                            <strong>{{ trainer_assignment.assigned_date|timesince }}</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Recent Communication -->
+                                {% if recent_messages %}
+                                    <div class="card trainer-card mt-4">
+                                        <div class="card-header bg-transparent border-0">
+                                            <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Recent Communication</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            {% for message in recent_messages|slice:":3" %}
+                                                <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1">{{ message.subject }}</h6>
+                                                            <p class="text-muted mb-1">{{ message.content|truncatewords:20 }}</p>
+                                                            <small class="text-muted">{{ message.created_at|timesince }} ago</small>
+                                                        </div>
+                                                        <span class="badge bg-{% if message.sender == user %}primary{% else %}info{% endif %}">
+                                                            {% if message.sender == user %}You{% else %}Trainer{% endif %}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                            <a href="{% url 'customer_messages' %}" class="btn btn-outline-info btn-sm">
+                                                <i class="fas fa-envelope me-1"></i>View All Messages
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Contact & Actions -->
+                            <div class="col-lg-4">
+                                <!-- Contact Information -->
+                                <div class="card trainer-card contact-info mb-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-phone me-2"></i>Contact Information</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-envelope me-3"></i>
+                                                <div>
+                                                    <small>Email</small>
+                                                    <div>{{ trainer_assignment.trainer.profile.user.email }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% if trainer_assignment.trainer.profile.phone %}
+                                            <div class="mb-3">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-phone me-3"></i>
+                                                    <div>
+                                                        <small>Phone</small>
+                                                        <div>{{ trainer_assignment.trainer.profile.phone }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        <div class="mb-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-clock me-3"></i>
+                                                <div>
+                                                    <small>Available Hours</small>
+                                                    <div>Mon-Fri: 6AM-10PM</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Actions -->
+                                <div class="card trainer-card">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'customer_messages' %}" class="btn btn-primary">
+                                                <i class="fas fa-comments me-2"></i>Send Message
+                                            </a>
+                                            <a href="{% url 'schedule_session' %}" class="btn btn-outline-success">
+                                                <i class="fas fa-calendar-plus me-2"></i>Schedule Session
+                                            </a>
+                                            <a href="{% url 'request_workout_plan' %}" class="btn btn-outline-info">
+                                                <i class="fas fa-list-alt me-2"></i>Request Workout Plan
+                                            </a>
+                                            <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                                                <i class="fas fa-star me-2"></i>Rate Trainer
+                                            </button>
+                                            {% if current_subscription and current_subscription.plan.trainer_support %}
+                                                <a href="{% url 'request_trainer_change' %}" class="btn btn-outline-secondary">
+                                                    <i class="fas fa-exchange-alt me-2"></i>Request Change
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Assignment Info -->
+                                <div class="card trainer-card mt-4">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Assignment Details</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between">
+                                                <span class="text-muted">Assigned Date:</span>
+                                                <strong>{{ trainer_assignment.assigned_date|date:"M j, Y" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between">
+                                                <span class="text-muted">Status:</span>
+                                                {% if trainer_assignment.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between">
+                                                <span class="text-muted">Duration:</span>
+                                                <strong>{{ trainer_assignment.assigned_date|timesince }}</strong>
+                                            </div>
+                                        </div>
+                                        {% if trainer_assignment.end_date %}
+                                            <div class="mb-2">
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="text-muted">End Date:</span>
+                                                    <strong>{{ trainer_assignment.end_date|date:"M j, Y" }}</strong>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Trainer Availability -->
+                                {% if trainer_assignment.trainer.weekly_schedule %}
+                                    <div class="card trainer-card mt-4">
+                                        <div class="card-header bg-transparent border-0">
+                                            <h5 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Weekly Availability</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="small">
+                                                {% for day, times in trainer_assignment.trainer.weekly_schedule.items %}
+                                                    <div class="d-flex justify-content-between mb-1">
+                                                        <span class="text-muted">{{ day|title }}:</span>
+                                                        <span>{{ times }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <!-- No Trainer Assigned -->
+                        <div class="text-center py-5">
+                            <i class="fas fa-user-tie text-muted mb-4" style="font-size: 5rem;"></i>
+                            <h3 class="text-muted mb-3">No Trainer Assigned</h3>
+                            <p class="text-muted mb-4">You don't have a personal trainer assigned yet. Upgrade to a premium plan to get a dedicated fitness trainer who will help you achieve your fitness goals.</p>
+                            <div class="row justify-content-center">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Why Get a Personal Trainer?</h5>
+                                            <ul class="list-unstyled text-start">
+                                                <li><i class="fas fa-check text-success me-2"></i>Personalized workout plans</li>
+                                                <li><i class="fas fa-check text-success me-2"></i>Expert guidance and motivation</li>
+                                                <li><i class="fas fa-check text-success me-2"></i>Progress tracking and adjustments</li>
+                                                <li><i class="fas fa-check text-success me-2"></i>Nutritional advice and meal planning</li>
+                                                <li><i class="fas fa-check text-success me-2"></i>1-on-1 support and accountability</li>
+                                            </ul>
+                                            <a href="{% url 'subscription_plans' %}" class="btn btn-primary btn-lg w-100">
+                                                <i class="fas fa-upgrade me-2"></i>Upgrade Plan
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    {% if trainer_assignment and trainer_assignment.is_active %}
+        <div class="modal fade" id="feedbackModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Rate Your Trainer</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="{% url 'rate_trainer' trainer_assignment.trainer.id %}">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">How would you rate {{ trainer_assignment.trainer.get_full_name }}?</label>
+                                <div class="rating-input text-center">
+                                    <input type="radio" name="rating" value="5" id="star5">
+                                    <label for="star5" class="text-warning fs-3"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="4" id="star4">
+                                    <label for="star4" class="text-warning fs-3"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="3" id="star3">
+                                    <label for="star3" class="text-warning fs-3"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="2" id="star2">
+                                    <label for="star2" class="text-warning fs-3"><i class="fas fa-star"></i></label>
+                                    <input type="radio" name="rating" value="1" id="star1">
+                                    <label for="star1" class="text-warning fs-3"><i class="fas fa-star"></i></label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="feedback" class="form-label">Feedback (Optional)</label>
+                                <textarea class="form-control" id="feedback" name="feedback" rows="3" placeholder="Share your experience with this trainer..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Submit Rating</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .rating-input {
+                direction: rtl;
+                display: inline-block;
+            }
+            .rating-input input[type="radio"] {
+                display: none;
+            }
+            .rating-input label {
+                cursor: pointer;
+                margin: 0 2px;
+                color: #ddd;
+            }
+            .rating-input input[type="radio"]:checked ~ label,
+            .rating-input label:hover,
+            .rating-input label:hover ~ label {
+                color: #ffc107 !important;
+            }
+        </style>
+    {% endif %}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

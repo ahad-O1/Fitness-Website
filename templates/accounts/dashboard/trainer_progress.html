@@ -1,0 +1,296 @@
+<!-- templates/accounts/dashboard/trainer_progress.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Tracking - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .progress-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .progress-card:hover {
+            transform: translateY(-2px);
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link active" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Progress Tracking</h2>
+                            <p class="text-muted">Monitor your clients' fitness progress</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" style="width: auto;">
+                                <option>All Clients</option>
+                                {% for customer in assigned_customers %}
+                                    <option value="{{ customer.id }}">{{ customer.profile.user.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Recent Progress Updates -->
+                    <div class="card progress-card">
+                        <div class="card-header bg-transparent border-0">
+                            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Recent Progress Updates</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if client_progress %}
+                                {% for progress in client_progress %}
+                                    <div class="d-flex align-items-start mb-3 p-3 bg-light rounded">
+                                        <img src="https://via.placeholder.com/60x60" class="rounded-circle me-3" alt="Client" style="width: 60px; height: 60px;">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1">{{ progress.customer.profile.user.get_full_name }}</h6>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            {% if progress.weight %}
+                                                                <small class="text-success d-block">
+                                                                    <i class="fas fa-weight me-1"></i>Weight: {{ progress.weight }}kg
+                                                                </small>
+                                                            {% endif %}
+                                                            {% if progress.bmi %}
+                                                                <small class="text-info d-block">
+                                                                    <i class="fas fa-calculator me-1"></i>BMI: {{ progress.bmi }}
+                                                                </small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            {% if progress.sessions_attended %}
+                                                                <small class="text-primary d-block">
+                                                                    <i class="fas fa-dumbbell me-1"></i>Sessions: {{ progress.sessions_attended }}
+                                                                </small>
+                                                            {% endif %}
+                                                            <small class="text-muted d-block">
+                                                                <i class="fas fa-calendar me-1"></i>{{ progress.date|date:"M j, Y" }}
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                    {% if progress.customer_notes %}
+                                                        <div class="mt-2">
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-comment me-1"></i>
+                                                                <strong>Client Notes:</strong> {{ progress.customer_notes|truncatewords:15 }}
+                                                            </small>
+                                                        </div>
+                                                    {% endif %}
+                                                    {% if progress.trainer_notes %}
+                                                        <div class="mt-1">
+                                                            <small class="text-warning">
+                                                                <i class="fas fa-sticky-note me-1"></i>
+                                                                <strong>Your Notes:</strong> {{ progress.trainer_notes|truncatewords:15 }}
+                                                            </small>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="btn-group-vertical">
+                                                        <a href="{% url 'view_client_progress' progress.customer.id %}" class="btn btn-sm btn-outline-primary mb-1">
+                                                            <i class="fas fa-chart-line"></i> Details
+                                                        </a>
+                                                        <button class="btn btn-sm btn-outline-success" onclick="addTrainerNotes({{ progress.id }}, '{{ progress.customer.profile.user.get_full_name }}')">
+                                                            <i class="fas fa-edit"></i> Add Note
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-chart-line text-muted mb-3" style="font-size: 4rem;"></i>
+                                    <h4 class="text-muted">No Progress Updates</h4>
+                                    <p class="text-muted">Your clients haven't added any progress updates yet.</p>
+                                    <a href="{% url 'trainer_clients' %}" class="btn btn-primary">
+                                        <i class="fas fa-users me-2"></i>View Clients
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card progress-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Client Achievements</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center py-3">
+                                        <p class="text-muted">Client achievements and milestones will appear here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card progress-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Progress Summary</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <h4 class="text-primary mb-0">{{ client_progress.count|default:0 }}</h4>
+                                            <small class="text-muted">Total Updates</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 class="text-success mb-0">{{ assigned_customers.count|default:0 }}</h4>
+                                            <small class="text-muted">Active Clients</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Trainer Notes Modal -->
+    <div class="modal fade" id="trainerNotesModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Trainer Notes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form>
+                    <div class="modal-body">
+                        <input type="hidden" id="progressId">
+                        <div class="mb-3">
+                            <label class="form-label">Client:</label>
+                            <input type="text" class="form-control" id="clientName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trainer Notes:</label>
+                            <textarea class="form-control" id="trainerNotes" rows="4" placeholder="Add your observations, recommendations, or notes about this progress update..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTrainerNotes()">
+                            <i class="fas fa-save me-1"></i>Save Notes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function addTrainerNotes(progressId, clientName) {
+            document.getElementById('progressId').value = progressId;
+            document.getElementById('clientName').value = clientName;
+            document.getElementById('trainerNotes').value = '';
+            new bootstrap.Modal(document.getElementById('trainerNotesModal')).show();
+        }
+
+        function saveTrainerNotes() {
+            // For now, just show a success message
+            alert('Trainer notes saved successfully!');
+            bootstrap.Modal.getInstance(document.getElementById('trainerNotesModal')).hide();
+            // In a real implementation, you would send this data to the server via AJAX
+        }
+    </script>
+</body>
+</html>

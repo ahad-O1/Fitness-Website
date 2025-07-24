@@ -1,0 +1,403 @@
+<!-- templates/accounts/dashboard/payment_history.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .payment-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .payment-card:hover {
+            transform: translateY(-2px);
+        }
+        .payment-item {
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+        .payment-item.completed {
+            border-left-color: #28a745;
+        }
+        .payment-item.failed {
+            border-left-color: #dc3545;
+        }
+        .payment-item.pending {
+            border-left-color: #ffc107;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                    </a>
+                    <a class="nav-link active" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Payment History</h2>
+                            <p class="text-muted">View all your transaction records and payment details</p>
+                        </div>
+                        <a href="{% url 'subscription_plans' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>New Subscription
+                        </a>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Payment Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="card payment-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-credit-card text-primary mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Total Payments</h5>
+                                    <h3 class="text-primary">${{ total_amount }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card payment-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Successful</h5>
+                                    <h3 class="text-success">{{ completed_count }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card payment-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-clock text-warning mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Pending</h5>
+                                    <h3 class="text-warning">{{ pending_count }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card payment-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-times-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                                    <h5 class="card-title">Failed</h5>
+                                    <h3 class="text-danger">{{ failed_count }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment History -->
+                    <div class="card payment-card">
+                        <div class="card-header bg-transparent border-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Transaction History</h5>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="statusFilter">
+                                        <option value="">All Statuses</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="failed">Failed</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="exportPayments()">
+                                        <i class="fas fa-download me-1"></i>Export
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if page_obj %}
+                                {% for payment in page_obj %}
+                                    <div class="payment-item {{ payment.status }} p-3">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <div class="me-3">
+                                                        {% if payment.status == 'completed' %}
+                                                            <i class="fas fa-check-circle text-success" style="font-size: 1.5rem;"></i>
+                                                        {% elif payment.status == 'pending' %}
+                                                            <i class="fas fa-clock text-warning" style="font-size: 1.5rem;"></i>
+                                                        {% elif payment.status == 'failed' %}
+                                                            <i class="fas fa-times-circle text-danger" style="font-size: 1.5rem;"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-undo text-info" style="font-size: 1.5rem;"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="mb-1">
+                                                            {% if payment.subscription %}
+                                                                {{ payment.subscription.plan.name }} Subscription
+                                                            {% else %}
+                                                                Payment
+                                                            {% endif %}
+                                                        </h6>
+                                                        <small class="text-muted">
+                                                            Transaction ID: {{ payment.transaction_id }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-6">
+                                                        <small class="text-muted">Payment Method:</small>
+                                                        <div>
+                                                            {% if payment.payment_method == 'card' %}
+                                                                <i class="fas fa-credit-card me-1"></i>Credit/Debit Card
+                                                            {% elif payment.payment_method == 'paypal' %}
+                                                                <i class="fab fa-paypal me-1"></i>PayPal
+                                                            {% elif payment.payment_method == 'bank' %}
+                                                                <i class="fas fa-university me-1"></i>Bank Transfer
+                                                            {% else %}
+                                                                <i class="fas fa-money-bill me-1"></i>{{ payment.get_payment_method_display }}
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6">
+                                                        <small class="text-muted">Date:</small>
+                                                        <div>{{ payment.payment_date|date:"M j, Y g:i A" }}</div>
+                                                    </div>
+                                                </div>
+                                                {% if payment.notes %}
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">Notes:</small>
+                                                        <div class="small">{{ payment.notes }}</div>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <div class="mb-2">
+                                                    <h4 class="mb-0">${{ payment.amount }}</h4>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <span class="badge status-badge {% if payment.status == 'completed' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% elif payment.status == 'failed' %}bg-danger{% else %}bg-info{% endif %}">
+                                                        {{ payment.get_status_display }}
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex gap-1 justify-content-end">
+                                                    {% if payment.status == 'completed' %}
+                                                        <button class="btn btn-outline-primary btn-sm" onclick="downloadReceipt('{{ payment.transaction_id }}')">
+                                                            <i class="fas fa-download"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="viewPaymentDetails('{{ payment.id }}')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- Pagination -->
+                                {% if page_obj.has_other_pages %}
+                                    <nav aria-label="Payment pagination" class="mt-4">
+                                        <ul class="pagination justify-content-center">
+                                            {% if page_obj.has_previous %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                                </li>
+                                            {% endif %}
+
+                                            {% for num in page_obj.paginator.page_range %}
+                                                {% if page_obj.number == num %}
+                                                    <li class="page-item active">
+                                                        <span class="page-link">{{ num }}</span>
+                                                    </li>
+                                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+
+                                            {% if page_obj.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% endif %}
+
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-receipt text-muted mb-3" style="font-size: 4rem;"></i>
+                                    <h4 class="text-muted">No Payment History</h4>
+                                    <p class="text-muted mb-4">You haven't made any payments yet.</p>
+                                    <a href="{% url 'subscription_plans' %}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Subscribe Now
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Details Modal -->
+    <div class="modal fade" id="paymentDetailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Payment Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="paymentDetailsContent">
+                    <!-- Payment details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filter payments by status
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            const status = this.value;
+            const paymentItems = document.querySelectorAll('.payment-item');
+            
+            paymentItems.forEach(item => {
+                if (status === '' || item.classList.contains(status)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // View payment details
+        function viewPaymentDetails(paymentId) {
+            // In a real implementation, you would fetch payment details via AJAX
+            const modalContent = `
+                <div class="row">
+                    <div class="col-sm-6"><strong>Payment ID:</strong></div>
+                    <div class="col-sm-6">${paymentId}</div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Status:</strong></div>
+                    <div class="col-sm-6"><span class="badge bg-success">Completed</span></div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Amount:</strong></div>
+                    <div class="col-sm-6">$59.99</div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Date:</strong></div>
+                    <div class="col-sm-6">${new Date().toLocaleDateString()}</div>
+                </div>
+            `;
+            
+            document.getElementById('paymentDetailsContent').innerHTML = modalContent;
+            new bootstrap.Modal(document.getElementById('paymentDetailsModal')).show();
+        }
+
+        // Download receipt
+        function downloadReceipt(transactionId) {
+            // In a real implementation, this would trigger a receipt download
+            alert('Receipt download would be triggered for transaction: ' + transactionId);
+        }
+
+        // Export payments
+        function exportPayments() {
+            // In a real implementation, this would export payment data
+            alert('Payment export functionality would be implemented here.');
+        }
+    </script>
+</body>
+</html>

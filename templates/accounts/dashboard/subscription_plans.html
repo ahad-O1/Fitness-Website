@@ -1,0 +1,544 @@
+<!-- templates/accounts/dashboard/subscription_plans.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Plans - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .plan-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .plan-card:hover {
+            transform: translateY(-10px);
+        }
+        .plan-card.featured {
+            border: 3px solid #28a745;
+            transform: scale(1.05);
+        }
+        .plan-card.current {
+            border: 3px solid #007bff;
+        }
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+        }
+        .plan-features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+        .feature-icon {
+            color: #28a745;
+            margin-right: 10px;
+        }
+        .feature-disabled {
+            color: #dc3545;
+            margin-right: 10px;
+        }
+        .comparison-table {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .faq-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link active" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                    </a>
+                    <a class="nav-link" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="text-center mb-5">
+                        <h1 class="mb-3">Choose Your Fitness Plan</h1>
+                        <p class="text-muted lead">Select the perfect plan to achieve your fitness goals</p>
+                        {% if current_subscription and current_subscription.is_active %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                You currently have an active <strong>{{ current_subscription.plan.name }}</strong> subscription 
+                                (expires {{ current_subscription.end_date|date:"M j, Y" }}).
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Subscription Plans -->
+                    <div class="row g-4 justify-content-center">
+                        {% for plan in plans %}
+                            <div class="col-lg-4 col-md-6">
+                                <div class="card plan-card 
+                                    {% if plan.is_featured %}featured{% endif %} 
+                                    {% if current_subscription and current_subscription.plan == plan %}current{% endif %}">
+                                    
+                                    {% if plan.is_featured %}
+                                        <div class="card-header bg-success text-white text-center">
+                                            <i class="fas fa-star me-1"></i>Most Popular
+                                        </div>
+                                    {% endif %}
+                                    {% if current_subscription and current_subscription.plan == plan and current_subscription.is_active %}
+                                        <div class="card-header bg-primary text-white text-center">
+                                            <i class="fas fa-check me-1"></i>Current Plan
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="card-body text-center">
+                                        <h3 class="card-title mb-3">{{ plan.name }}</h3>
+                                        <div class="plan-price text-primary mb-3">PKR {{ plan.price }}</div>
+                                        <p class="text-muted mb-2">per {{ plan.duration_days }} days</p>
+                                        {% if plan.monthly_equivalent %}
+                                            <small class="text-muted">({{ plan.monthly_equivalent|floatformat:2 }}/month)</small>
+                                        {% endif %}
+                                        <p class="card-text mb-4">{{ plan.description }}</p>
+                                        
+                                        <!-- Plan Features -->
+                                        <ul class="plan-features mb-4">
+                                            <li class="text-start">
+                                                {% if plan.workout_videos %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.workout_videos %}text-muted text-decoration-line-through{% endif %}">
+                                                    Access to Workout Videos
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.meal_plans %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.meal_plans %}text-muted text-decoration-line-through{% endif %}">
+                                                    Personalized Meal Plans
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.trainer_support %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.trainer_support %}text-muted text-decoration-line-through{% endif %}">
+                                                    Personal Trainer Support
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.progress_tracking %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.progress_tracking %}text-muted text-decoration-line-through{% endif %}">
+                                                    Progress Tracking Tools
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.live_sessions %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.live_sessions %}text-muted text-decoration-line-through{% endif %}">
+                                                    Live Group Sessions
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.personal_sessions %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.personal_sessions %}text-muted text-decoration-line-through{% endif %}">
+                                                    1-on-1 Personal Sessions
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.nutrition_guidance %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.nutrition_guidance %}text-muted text-decoration-line-through{% endif %}">
+                                                    Nutrition Guidance
+                                                </span>
+                                            </li>
+                                            <li class="text-start">
+                                                {% if plan.premium_content %}
+                                                    <i class="fas fa-check feature-icon"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times feature-disabled"></i>
+                                                {% endif %}
+                                                <span class="{% if not plan.premium_content %}text-muted text-decoration-line-through{% endif %}">
+                                                    Premium Content Access
+                                                </span>
+                                            </li>
+                                        </ul>
+                                        
+                                        <!-- Subscribe Button -->
+                                        {% if current_subscription and current_subscription.plan == plan and current_subscription.is_active %}
+                                            <button class="btn btn-outline-primary w-100" disabled>
+                                                <i class="fas fa-check me-1"></i>Current Plan
+                                            </button>
+                                        {% elif current_subscription and current_subscription.is_active %}
+                                            <form method="post" action="{% url 'subscribe_to_plan' plan.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn {% if plan.is_featured %}btn-success{% else %}btn-primary{% endif %} w-100" 
+                                                        onclick="return confirmUpgrade('{{ plan.name }}', '{{ plan.price }}', '{{ current_subscription.plan.name }}')">
+                                                    <i class="fas fa-upgrade me-1"></i>
+                                                    {% if plan.price > current_subscription.plan.price %}
+                                                        Upgrade to {{ plan.name }}
+                                                    {% elif plan.price < current_subscription.plan.price %}
+                                                        Downgrade to {{ plan.name }}
+                                                    {% else %}
+                                                        Switch to {{ plan.name }}
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post" action="{% url 'subscribe_to_plan' plan.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn {% if plan.is_featured %}btn-success{% else %}btn-primary{% endif %} w-100" 
+                                                        onclick="return confirmSubscription('{{ plan.name }}', '{{ plan.price }}')">
+                                                    <i class="fas fa-rocket me-1"></i>Get Started
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        {% if plan.trial_days and plan.trial_days > 0 %}
+                                            <small class="text-muted d-block mt-2">{{ plan.trial_days }}-day free trial included</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="col-12">
+                                <div class="text-center py-5">
+                                    <i class="fas fa-exclamation-triangle text-muted mb-3" style="font-size: 3rem;"></i>
+                                    <h4 class="text-muted">No Plans Available</h4>
+                                    <p class="text-muted">Please contact support for assistance.</p>
+                                    <a href="mailto:support@fitnesshub.com" class="btn btn-primary">Contact Support</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Plan Comparison -->
+                    {% if plans %}
+                        <div class="mt-5">
+                            <div class="comparison-table p-4">
+                                <h4 class="mb-4 text-center"><i class="fas fa-balance-scale me-2"></i>Plan Comparison</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Feature</th>
+                                                {% for plan in plans %}
+                                                    <th class="text-center">
+                                                        {{ plan.name }}
+                                                        {% if plan.is_featured %}
+                                                            <i class="fas fa-star text-warning ms-1"></i>
+                                                        {% endif %}
+                                                    </th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="table-light">
+                                                <td><strong>Price</strong></td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        <strong>${{ plan.price }}</strong><br>
+                                                        <small class="text-muted">{{ plan.duration_days }} days</small>
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Workout Videos</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.workout_videos %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Meal Plans</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.meal_plans %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Personal Trainer Support</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.trainer_support %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Progress Tracking</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.progress_tracking %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Live Group Sessions</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.live_sessions %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>1-on-1 Personal Sessions</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.personal_sessions %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Nutrition Guidance</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.nutrition_guidance %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                            <tr>
+                                                <td>Premium Content Access</td>
+                                                {% for plan in plans %}
+                                                    <td class="text-center">
+                                                        {% if plan.premium_content %}
+                                                            <i class="fas fa-check text-success fs-5"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger fs-5"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- FAQ Section -->
+                    <div class="mt-5">
+                        <div class="faq-card p-4">
+                            <h4 class="mb-4 text-center"><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h4>
+                            <div class="accordion" id="faqAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                            Can I change my plan anytime?
+                                        </button>
+                                    </h2>
+                                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            Yes! You can upgrade or downgrade your plan at any time. When you change plans, you'll be charged the prorated difference and your billing cycle will be adjusted accordingly. Upgrades take effect immediately, while downgrades take effect at the end of your current billing period.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                            What payment methods do you accept?
+                                        </button>
+                                    </h2>
+                                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and bank transfers. All payments are processed securely through our encrypted payment system. You can update your payment method anytime in your account settings.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                            Do you offer refunds?
+                                        </button>
+                                    </h2>
+                                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            We offer a 7-day money-back guarantee for all new subscriptions. If you're not satisfied within the first week, contact our support team for a full refund. After the 7-day period, refunds are handled on a case-by-case basis.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                            How do personal training sessions work?
+                                        </button>
+                                    </h2>
+                                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            Personal training sessions are conducted via video call with certified trainers. Sessions can be scheduled through your dashboard and are customized to your fitness level and goals. Premium and Elite plans include different numbers of personal sessions per month.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                            Can I cancel my subscription?
+                                        </button>
+                                    </h2>
+                                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            Yes, you can cancel your subscription at any time from your account settings. Your subscription will remain active until the end of your current billing period. You'll continue to have access to all features until your subscription expires.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Back to Dashboard -->
+                    <div class="text-center mt-4">
+                        <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmSubscription(planName, price) {
+            return confirm(`Are you sure you want to subscribe to ${planName} for $${price}?`);
+        }
+
+        function confirmUpgrade(newPlan, newPrice, currentPlan) {
+            return confirm(`Are you sure you want to change from ${currentPlan} to ${newPlan} for $${newPrice}?`);
+        }
+    </script>
+</body>
+</html>

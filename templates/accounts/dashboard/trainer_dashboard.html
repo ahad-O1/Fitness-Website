@@ -1,0 +1,372 @@
+<!-- templates/accounts/dashboard/trainer_dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer Dashboard - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .dashboard-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+        }
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+        .session-item {
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+        }
+        .session-item.today {
+            border-left-color: #28a745;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded-circle mb-2" alt="Profile" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        {% endif %}
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Personal Trainer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link active" href="{% url 'trainer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_clients' %}">
+                        <i class="fas fa-users me-2"></i>My Clients
+                        {% if total_clients > 0 %}
+                            <span class="notification-badge">{{ total_clients }}</span>
+                        {% endif %}
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_sessions' %}">
+                        <i class="fas fa-calendar-alt me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_schedule' %}">
+                        <i class="fas fa-clock me-2"></i>Schedule
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress Tracking
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_resources' %}">
+                        <i class="fas fa-book me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_reports' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0">Welcome back, {{ user.get_full_name|default:user.username }}!</h2>
+                            <p class="text-muted">Here's your training overview for today</p>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">Last login: {{ user.last_login|date:"M j, Y g:i A"|default:"First time" }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="card dashboard-card stat-card text-center">
+                                <div class="card-body">
+                                    <i class="fas fa-users mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ total_clients|default:0 }}</h3>
+                                    <small>Total Clients</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card dashboard-card text-center bg-success text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-user-check mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ active_subscriptions|default:0 }}</h3>
+                                    <small>Active Subscriptions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card dashboard-card text-center bg-warning text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-calendar-day mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ sessions_today|default:0 }}</h3>
+                                    <small>Sessions Today</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card dashboard-card text-center bg-info text-white">
+                                <div class="card-body">
+                                    <i class="fas fa-percentage mb-2" style="font-size: 2rem;"></i>
+                                    <h3 class="mb-0">{{ completion_rate|default:0 }}%</h3>
+                                    <small>Completion Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Dashboard Content -->
+                    <div class="row">
+                        <!-- Upcoming Sessions -->
+                        <div class="col-lg-8 mb-4">
+                            <div class="card dashboard-card">
+                                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Upcoming Sessions</h5>
+                                    <a href="{% url 'trainer_sessions' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                                </div>
+                                <div class="card-body">
+                                    {% if upcoming_sessions %}
+                                        {% for session in upcoming_sessions %}
+                                            <div class="session-item p-3 {% if session.session_date == today %}today{% endif %}">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-8">
+                                                        <div class="d-flex align-items-center mb-2">
+                                                            {% if session.customer.profile.profile_picture %}
+                                                                <img src="{{ session.customer.profile.profile_picture.url }}" class="rounded-circle me-3" alt="Client" style="width: 50px; height: 50px; object-fit: cover;">
+                                                            {% else %}
+                                                                <img src="https://via.placeholder.com/50x50" class="rounded-circle me-3" alt="Client" style="width: 50px; height: 50px;">
+                                                            {% endif %}
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="mb-0">{{ session.customer.profile.user.get_full_name }}</h6>
+                                                                <small class="text-muted">{{ session.session_type|default:"Personal Training"|title }}</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="fas fa-calendar me-2 text-muted"></i>
+                                                            <span>{{ session.session_date|date:"M j, Y" }} at {{ session.session_time|time:"g:i A" }}</span>
+                                                        </div>
+                                                        {% if session.notes %}
+                                                            <small class="text-info d-block mt-1">{{ session.notes|truncatewords:10 }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-4 text-end">
+                                                        <span class="badge bg-{% if session.status == 'completed' %}success{% elif session.status == 'confirmed' %}primary{% elif session.status == 'cancelled' %}danger{% else %}warning{% endif %} mb-2">
+                                                            {{ session.get_status_display }}
+                                                        </span>
+                                                        <div class="btn-group-vertical">
+                                                            {% if session.status == 'scheduled' %}
+                                                                <button class="btn btn-outline-success btn-sm" onclick="updateSessionStatus({{ session.id }}, 'confirmed')">
+                                                                    <i class="fas fa-check"></i> Confirm
+                                                                </button>
+                                                            {% elif session.status == 'confirmed' %}
+                                                                <button class="btn btn-outline-primary btn-sm" onclick="updateSessionStatus({{ session.id }}, 'completed')">
+                                                                    <i class="fas fa-flag-checkered"></i> Complete
+                                                                </button>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-calendar-day text-muted mb-3" style="font-size: 3rem;"></i>
+                                            <h5 class="text-muted">No sessions scheduled</h5>
+                                            <p class="text-muted">Schedule your first session with a client!</p>
+                                            <a href="{% url 'trainer_schedule' %}" class="btn btn-primary">
+                                                <i class="fas fa-plus me-1"></i>Schedule Session
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Info Panel -->
+                        <div class="col-lg-4 mb-4">
+                            <!-- Quick Actions -->
+                            <div class="card dashboard-card mb-4">
+                                <div class="card-header bg-transparent border-0">
+                                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'trainer_schedule' %}" class="btn btn-primary">
+                                            <i class="fas fa-calendar-plus me-2"></i>Schedule Session
+                                        </a>
+                                        <a href="{% url 'trainer_clients' %}" class="btn btn-outline-primary">
+                                            <i class="fas fa-users me-2"></i>View Clients
+                                        </a>
+                                        <a href="{% url 'trainer_messages' %}" class="btn btn-outline-success">
+                                            <i class="fas fa-envelope me-2"></i>Send Message
+                                        </a>
+                                        <a href="{% url 'trainer_progress' %}" class="btn btn-outline-info">
+                                            <i class="fas fa-chart-line me-2"></i>Track Progress
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Messages -->
+                            <div class="card dashboard-card mb-4">
+                                <div class="card-header bg-transparent border-0">
+                                    <h6 class="mb-0"><i class="fas fa-envelope me-2"></i>Recent Messages</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if recent_messages %}
+                                        {% for message in recent_messages|slice:":3" %}
+                                            <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 small">{{ message.customer.profile.user.get_full_name }}</h6>
+                                                        <p class="text-muted mb-1 small">{{ message.subject|truncatewords:5 }}</p>
+                                                        <small class="text-muted">{{ message.created_at|timesince }} ago</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        <a href="{% url 'trainer_messages' %}" class="btn btn-outline-info btn-sm w-100">
+                                            <i class="fas fa-envelope me-1"></i>View All Messages
+                                        </a>
+                                    {% else %}
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-envelope text-muted mb-2" style="font-size: 2rem;"></i>
+                                            <p class="text-muted mb-0">No recent messages</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Performance Summary -->
+                            <div class="card dashboard-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>This Week</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-6 mb-3">
+                                            <h4 class="mb-0 text-primary">{{ sessions_this_week|default:0 }}</h4>
+                                            <small class="text-muted">Sessions</small>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <h4 class="mb-0 text-success">{{ sessions_this_month|default:0 }}</h4>
+                                            <small class="text-muted">This Month</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Progress -->
+                    {% if recent_progress %}
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card dashboard-card">
+                                    <div class="card-header bg-transparent border-0">
+                                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Recent Client Progress</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            {% for progress in recent_progress|slice:":4" %}
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="text-center p-3 bg-light rounded">
+                                                        <h6 class="mb-1">{{ progress.customer.profile.user.get_full_name }}</h6>
+                                                        {% if progress.weight %}
+                                                            <small class="text-success d-block">Weight: {{ progress.weight }}kg</small>
+                                                        {% endif %}
+                                                        {% if progress.sessions_attended %}
+                                                            <small class="text-primary d-block">Sessions: {{ progress.sessions_attended }}</small>
+                                                        {% endif %}
+                                                        <small class="text-muted">{{ progress.date|date:"M j" }}</small>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Simple session status update function
+        function updateSessionStatus(sessionId, status) {
+            if (confirm(`Are you sure you want to mark this session as ${status}?`)) {
+                // For now, just reload the page - you can implement AJAX later
+                location.reload();
+            }
+        }
+
+        // Auto-refresh dashboard every 5 minutes (optional)
+        setInterval(function() {
+            // You can add AJAX refresh logic here later
+        }, 300000); // 5 minutes
+    </script>
+</body>
+</html>

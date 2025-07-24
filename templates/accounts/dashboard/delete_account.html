@@ -1,0 +1,510 @@
+<!-- templates/accounts/dashboard/delete_account.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Account - FitnessHub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: white;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .delete-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .warning-card {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-left: 5px solid #ffc107;
+        }
+        .danger-card {
+            background: linear-gradient(135deg, #f8d7da, #fab1a0);
+            border-left: 5px solid #dc3545;
+        }
+        .consequence-item {
+            background: rgba(220, 53, 69, 0.1);
+            border-left: 3px solid #dc3545;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 5px;
+        }
+        .delete-input {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-3">
+                    <h5 class="mb-3"><i class="fas fa-dumbbell me-2"></i>FitnessHub</h5>
+                    <div class="text-center mb-4">
+                        <img src="https://via.placeholder.com/80x80" class="rounded-circle mb-2" alt="Profile">
+                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-light">Customer</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'customer_dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link active" href="{% url 'customer_profile' %}">
+                        <i class="fas fa-user me-2"></i>Profile
+                    </a>
+                    <a class="nav-link" href="{% url 'subscription_details' %}">
+                        <i class="fas fa-crown me-2"></i>Subscription
+                    </a>
+                    <a class="nav-link" href="{% url 'payment_history' %}">
+                        <i class="fas fa-credit-card me-2"></i>Payments
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_info' %}">
+                        <i class="fas fa-user-tie me-2"></i>My Trainer
+                    </a>
+                    <a class="nav-link" href="{% url 'workout_progress' %}">
+                        <i class="fas fa-chart-line me-2"></i>Progress
+                    </a>
+                    <a class="nav-link" href="{% url 'goals_management' %}">
+                        <i class="fas fa-bullseye me-2"></i>Goals
+                    </a>
+                    <a class="nav-link" href="{% url 'resources_downloads' %}">
+                        <i class="fas fa-download me-2"></i>Resources
+                    </a>
+                    <a class="nav-link" href="{% url 'notifications_list' %}">
+                        <i class="fas fa-bell me-2"></i>Notifications
+                    </a>
+                    <a class="nav-link" href="{% url 'trainer_messages' %}">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </a>
+                    <hr class="text-light">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-auto">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-0 text-danger">Delete Account</h2>
+                            <p class="text-muted">Permanently remove your account and all associated data</p>
+                        </div>
+                        <a href="{% url 'customer_profile' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Profile
+                        </a>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                            <!-- Warning Card -->
+                            <div class="card delete-card warning-card mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <i class="fas fa-exclamation-triangle text-warning me-3" style="font-size: 2rem;"></i>
+                                        <div>
+                                            <h5 class="mb-0">Think Carefully Before Proceeding</h5>
+                                            <small class="text-muted">Account deletion is permanent and cannot be undone</small>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0">
+                                        We're sorry to see you go! Before you delete your account, consider that you might want to 
+                                        <a href="{% url 'customer_profile' %}" class="alert-link">update your profile settings</a> or 
+                                        <a href="{% url 'subscription_details' %}" class="alert-link">pause your subscription</a> instead.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- What Will Be Deleted -->
+                            <div class="card delete-card danger-card mb-4">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0 text-danger">
+                                        <i class="fas fa-trash-alt me-2"></i>What Will Be Permanently Deleted
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="consequence-item">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-user text-danger me-2"></i>
+                                                    <div>
+                                                        <strong>Profile Information</strong>
+                                                        <br><small>Name, email, phone, preferences</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="consequence-item">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-chart-line text-danger me-2"></i>
+                                                    <div>
+                                                        <strong>Workout Progress</strong>
+                                                        <br><small>All progress data and statistics</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="consequence-item">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-bullseye text-danger me-2"></i>
+                                                    <div>
+                                                        <strong>Fitness Goals</strong>
+                                                        <br><small>All goals and achievements</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="consequence-item">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-crown text-danger me-2"></i>
+                                                    <div>
+                                                        <strong>Subscription Data</strong>
+                                                        <br><small>Plan details and payment history</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="consequence-item">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-comments text-danger me-2"></i>
+                                                    <div>
+                                                        <strong>Messages & Communication</strong>
+                                                        <br><small>All trainer messages and notifications</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="consequence-item">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-download text-danger me-2"></i>
+                                                    <div>
+                                                        <strong>Downloaded Resources</strong>
+                                                        <br><small>Access to all training materials</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account Summary -->
+                            <div class="card delete-card mb-4">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-info"></i>Your Account Summary</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-3 mb-3">
+                                            <div class="border rounded p-3">
+                                                <i class="fas fa-calendar text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                                <h6>Member Since</h6>
+                                                <strong>{{ user.date_joined|date:"M Y" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="border rounded p-3">
+                                                <i class="fas fa-chart-bar text-success mb-2" style="font-size: 1.5rem;"></i>
+                                                <h6>Progress Entries</h6>
+                                                <strong>{{ customer.progress.count|default:0 }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="border rounded p-3">
+                                                <i class="fas fa-bullseye text-warning mb-2" style="font-size: 1.5rem;"></i>
+                                                <h6>Goals Set</h6>
+                                                <strong>{{ customer.goals.count|default:0 }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="border rounded p-3">
+                                                <i class="fas fa-envelope text-info mb-2" style="font-size: 1.5rem;"></i>
+                                                <h6>Messages</h6>
+                                                <strong>{{ customer.trainer_messages.count|default:0 }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alternatives -->
+                            <div class="card delete-card mb-4">
+                                <div class="card-header bg-transparent border-0">
+                                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2 text-success"></i>Consider These Alternatives</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="d-flex">
+                                                <i class="fas fa-pause-circle text-primary me-3 mt-1" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6>Pause Your Subscription</h6>
+                                                    <p class="text-muted mb-2">Take a break while keeping your progress data safe.</p>
+                                                    <a href="{% url 'subscription_details' %}" class="btn btn-sm btn-outline-primary">Manage Subscription</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="d-flex">
+                                                <i class="fas fa-cog text-secondary me-3 mt-1" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6>Update Privacy Settings</h6>
+                                                    <p class="text-muted mb-2">Control what data is shared and how it's used.</p>
+                                                    <a href="{% url 'customer_profile' %}" class="btn btn-sm btn-outline-secondary">Privacy Settings</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="d-flex">
+                                                <i class="fas fa-download text-info me-3 mt-1" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6>Download Your Data</h6>
+                                                    <p class="text-muted mb-2">Get a copy of your fitness data before leaving.</p>
+                                                    <button class="btn btn-sm btn-outline-info" onclick="downloadData()">Download Data</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="d-flex">
+                                                <i class="fas fa-headset text-warning me-3 mt-1" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6>Contact Support</h6>
+                                                    <p class="text-muted mb-2">Let us help resolve any issues you're facing.</p>
+                                                    <button class="btn btn-sm btn-outline-warning" onclick="contactSupport()">Get Help</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Confirmation Form -->
+                            <div class="card delete-card border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h5 class="mb-0"><i class="fas fa-trash-alt me-2"></i>Confirm Account Deletion</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger border-0">
+                                        <div class="d-flex">
+                                            <i class="fas fa-exclamation-circle me-3 mt-1"></i>
+                                            <div>
+                                                <strong>Warning: This action cannot be undone!</strong><br>
+                                                Once you delete your account, all your data will be permanently removed from our servers.
+                                                You will not be able to recover any information, progress, or achievements.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <form method="post" id="deleteForm">
+                                        {% csrf_token %}
+                                        
+                                        <!-- Confirmation Steps -->
+                                        <div class="mb-4">
+                                            <h6 class="mb-3">To confirm deletion, please complete the following steps:</h6>
+                                            
+                                            <!-- Step 1: Acknowledge -->
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="acknowledge1" onchange="checkDeleteRequirements()">
+                                                <label class="form-check-label" for="acknowledge1">
+                                                    I understand that deleting my account is permanent and cannot be undone
+                                                </label>
+                                            </div>
+                                            
+                                            <!-- Step 2: Data Loss -->
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="acknowledge2" onchange="checkDeleteRequirements()">
+                                                <label class="form-check-label" for="acknowledge2">
+                                                    I understand that all my fitness data, progress, and goals will be permanently lost
+                                                </label>
+                                            </div>
+                                            
+                                            <!-- Step 3: Subscription -->
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="acknowledge3" onchange="checkDeleteRequirements()">
+                                                <label class="form-check-label" for="acknowledge3">
+                                                    I understand that my subscription will be cancelled and I will not receive any refunds
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Type DELETE confirmation -->
+                                        <div class="mb-4">
+                                            <label for="confirmationText" class="form-label">
+                                                <strong>Type "DELETE" to confirm (case sensitive):</strong>
+                                            </label>
+                                            <input type="text" class="form-control delete-input" id="confirmationText" name="confirmation" 
+                                                   placeholder="Type DELETE here" onkeyup="checkDeleteRequirements()" maxlength="6">
+                                            <small class="text-muted">This field is case-sensitive. Type exactly: DELETE</small>
+                                        </div>
+
+                                        <!-- Final confirmation -->
+                                        <div class="mb-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="finalConfirm" onchange="checkDeleteRequirements()">
+                                                <label class="form-check-label" for="finalConfirm">
+                                                    <strong>I am absolutely certain I want to delete my account</strong>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Delete Button -->
+                                        <div class="d-grid gap-2">
+                                            <button type="submit" class="btn btn-danger btn-lg" id="deleteButton" disabled>
+                                                <i class="fas fa-trash-alt me-2"></i>Delete My Account Permanently
+                                            </button>
+                                            <a href="{% url 'customer_profile' %}" class="btn btn-outline-secondary">
+                                                <i class="fas fa-times me-2"></i>Cancel - Keep My Account
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Final Warning -->
+                            <div class="alert alert-warning mt-4">
+                                <div class="d-flex">
+                                    <i class="fas fa-info-circle me-3"></i>
+                                    <div>
+                                        <strong>Need help instead?</strong><br>
+                                        If you're having issues with your account, our support team is here to help. 
+                                        Consider reaching out before making this permanent decision.
+                                        <br><br>
+                                        <button class="btn btn-sm btn-warning" onclick="contactSupport()">
+                                            <i class="fas fa-headset me-1"></i>Contact Support Instead
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="finalConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Final Confirmation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-trash-alt text-danger mb-3" style="font-size: 3rem;"></i>
+                    <h4>Are you absolutely sure?</h4>
+                    <p class="text-muted mb-4">
+                        This will permanently delete your account and all associated data. 
+                        This action cannot be undone.
+                    </p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-danger" onclick="submitDeletion()">
+                            <i class="fas fa-trash-alt me-2"></i>Yes, Delete My Account
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-arrow-left me-2"></i>No, Take Me Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function checkDeleteRequirements() {
+            const acknowledge1 = document.getElementById('acknowledge1').checked;
+            const acknowledge2 = document.getElementById('acknowledge2').checked;
+            const acknowledge3 = document.getElementById('acknowledge3').checked;
+            const confirmationText = document.getElementById('confirmationText').value;
+            const finalConfirm = document.getElementById('finalConfirm').checked;
+            const deleteButton = document.getElementById('deleteButton');
+            
+            const allChecked = acknowledge1 && acknowledge2 && acknowledge3 && finalConfirm;
+            const textCorrect = confirmationText === 'DELETE';
+            
+            deleteButton.disabled = !(allChecked && textCorrect);
+            
+            if (allChecked && textCorrect) {
+                deleteButton.classList.remove('btn-danger');
+                deleteButton.classList.add('btn-outline-danger');
+            } else {
+                deleteButton.classList.remove('btn-outline-danger');
+                deleteButton.classList.add('btn-danger');
+            }
+        }
+
+        function downloadData() {
+            alert('Data download feature will be available soon. Contact support for assistance.');
+        }
+
+        function contactSupport() {
+            alert('Support contact feature will be implemented. For now, please email: support@fitnesshub.com');
+        }
+
+        function submitDeletion() {
+            document.getElementById('deleteForm').submit();
+        }
+
+        // Form submission with additional confirmation
+        document.getElementById('deleteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show final confirmation modal
+            new bootstrap.Modal(document.getElementById('finalConfirmModal')).show();
+        });
+
+        // Prevent accidental form submission
+        window.addEventListener('beforeunload', function(e) {
+            const form = document.getElementById('deleteForm');
+            const hasStartedDeleting = form.querySelector('input[type="checkbox"]:checked');
+            
+            if (hasStartedDeleting) {
+                e.preventDefault();
+                e.returnValue = '';
+                return 'Are you sure you want to leave? Your account deletion process will be cancelled.';
+            }
+        });
+
+        // Auto-focus on confirmation text when checkboxes are all checked
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(document.querySelectorAll('input[type="checkbox"]')).every(cb => cb.checked);
+                if (allChecked) {
+                    document.getElementById('confirmationText').focus();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
