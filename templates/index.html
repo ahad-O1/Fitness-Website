@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+
+<body>
+
+
+
+    <!--==================== MAIN ====================-->
+    <main class="main">
+        <!--==================== HOME ====================-->
+        <section class="home section" id="home">
+            <div class="home__container container grid">
+                <div class="home__data">
+                    <h2 class="home__subtitle">MAKE YOUR</h2>
+                    <h1 class="home__title">BODY SHAPE</h1>
+                    <p class="home__description">
+                        In here we will help you to shape and build your ideal body and live your life to the fullest.
+                    </p>
+
+                </div>
+
+                <div class="home__images">
+                    <img src="static/img/home-img.png" alt="home image" class="home__img">
+                    <div class="home__triangle home__triangle-3"></div>
+                    <div class="home__triangle home__triangle-2"></div>
+                    <div class="home__triangle home__triangle-1"></div>
+                </div>
+            </div>
+        </section>
+
+        <!--==================== LOGOS ====================-->
+        <section class="logos section">
+            <section class="logos section">
+                <div class="logos__container container grid">
+                    <img src="static/img/logo1.png" alt="logo image" class="logos__img">
+                    <img src="static/img/logo2.png" alt="logo image" class="logos__img">
+                    <img src="static/img/logo3.png" alt="logo image" class="logos__img">
+                    <img src="static/img/logo4.png" alt="logo image" class="logos__img">
+                    <!-- Add your logo content here -->
+                </div>
+            </section>
+
+        </section>
+
+        <!--==================== PROGRAM ====================-->
+        <section class="program section" id="program">
+            <div class="container">
+                <div class="section__data">
+                    <h2 class="section__subtitle">OUR PROGRAM</h2>
+                    <div class="section__titles">
+                        <h1 class="section__title-border">BUILD YOUR</h1>
+                        <h1 class="section__title">BEST BODY</h1>
+                    </div>
+                </div>
+                <div class="program__container grid">
+                    <!-- Program cards go here -->
+                    <!-- Flex Muscle -->
+                    <article class="program__card">
+                        <div class="program__shape">
+                            <img src="static/img/program1.png" alt="program image" class="program__img" />
+                        </div>
+                        <h3 class="program__title">Flex Muscle</h3>
+                        <p class="program__description">
+                            Creating tension that's temporarily making the muscle contract and expand.
+                        </p>
+                        <a href="javascript:void(0);" class="program__button"
+                            onclick="showProgramDetail('Flex Muscle')">
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+                    <!-- Cardio Exercise -->
+                    <article class="program__card">
+                        <div class="program__shape">
+                            <img src="static/img/program2.png" alt="program image" class="program__img" />
+                        </div>
+                        <h3 class="program__title">Cardio Exercise</h3>
+                        <p class="program__description">
+                            Exercise that gets your heart rate up and keeps it elevated.
+                        </p>
+                        <a href="javascript:void(0);" class="program__button"
+                            onclick="showProgramDetail('Cardio Exercise')">
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+
+                    <!-- Basic Yoga -->
+                    <article class="program__card">
+                        <div class="program__shape">
+                            <img src="static/img/program3.png" alt="program image" class="program__img" />
+                        </div>
+                        <h3 class="program__title">Basic Yoga</h3>
+                        <p class="program__description">
+                            Breathing techniques and poses for relaxation and flexibility.
+                        </p>
+                        <a href="javascript:void(0);" class="program__button" onclick="showProgramDetail('Basic Yoga')">
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+
+                    <!-- Weight Lifting -->
+                    <article class="program__card">
+                        <div class="program__shape">
+                            <img src="static/img/program4.png" alt="program image" class="program__img" />
+                        </div>
+                        <h3 class="program__title">Weight Lifting</h3>
+                        <p class="program__description">
+                            Build muscle strength with targeted weight resistance exercises.
+                        </p>
+                        <a href="javascript:void(0);" class="program__button"
+                            onclick="showProgramDetail('Weight Lifting')">
+                            <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+                    <!-- Modal -->
+                    <div id="programModal" class="modal">
+                        <div class="modal-content">
+                            <span onclick="closeProgramModal()" class="close-button">&times;</span>
+                            <h2 id="programModalTitle"></h2>
+                            <p id="programModalContent"></p>
+                        </div>
+                    </div>
+
+                    <!-- Additional program cards would go here -->
+                </div>
+            </div>
+
+        </section>
+
+        <!--==================== CHOOSE US ====================-->
+        <section class="choose section" id="choose">
+            <div class="choose__container container grid">
+                <div class="choose__content">
+                    <div class="section__data">
+                        <h2 class="section__subtitle">BEST REASON</h2>
+                        <div class="section__titles">
+                            <h1 class="section__title-border">WHY</h1>
+                            <h1 class="section__title">CHOOSE US ?</h1>
+                        </div>
+                    </div>
+
+                    <p class="choose__description">
+                        Choose your favorite class and start now. Remember the only bad workout is the one you didn't
+                        do.
+                    </p>
+
+                    <div class="choose__data">
+                        <div class="choose__group">
+                            <h3 class="choose__number">200+</h3>
+                            <p class="choose__subtitle">Total Members</p>
+                        </div>
+                        <div class="choose__group">
+                            <h3 class="choose__number">50+</h3>
+                            <p class="choose__subtitle">Best trainers</p>
+                        </div>
+                        <div class="choose__group">
+                            <h3 class="choose__number">25+</h3>
+                            <p class="choose__subtitle">Programs</p>
+                        </div>
+                        <div class="choose__group">
+                            <h3 class="choose__number">100+</h3>
+                            <p class="choose__subtitle">Awards</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="choose__images">
+                    <img src="static/img/choose-img.png" alt="choose image" class="choose__img">
+                    <div class="choose__triangle choose__triangle-1"></div>
+                    <div class="choose__triangle choose__triangle-2"></div>
+                    <div class="choose__triangle choose__triangle-3"></div>
+                </div>
+            </div>
+        </section>
+
+        <!--==================== PRICING ====================-->
+        <section class="pricing section" id="pricing">
+            <div class="container">
+                <div class="section__data">
+                    <h2 class="section__subtitle">PRICING</h2>
+                    <div class="section__titles">
+                        <h1 class="section__title-border">OUR</h1>
+                        <h1 class="section__title">SPECIAL PLANS</h1>
+                    </div>
+                </div>
+
+                <div class="pricing__container grid">
+                    <article class="pricing__card">
+                        <header class="pricing__header">
+                            <div class="pricing__shape">
+                                <img src="static/img/pricing1.png" alt="pricing image" class="pricing__img">
+                            </div>
+                            <h1 class="pricing__title">BASIC PACKAGE</h1>
+                            <h2 class="pricing__number">RS 2,000</h2>
+                        </header>
+
+                        <ul class="pricing__list">
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> Access to gym equipment (cardio & weights)
+                            </li>
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> 5 Days In A Week
+                            </li>
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> Free Wifi
+                            </li>
+                            <li class="pricing__item pricing__item-opacity">
+                                <i class="ri-close-circle-line"></i> No locker room or showers
+                            </li>
+                            <li class="pricing__item pricing__item-opacity">
+                                <i class="ri-close-circle-line"></i> No premium time access
+                            </li>
+                            <li class="pricing__item pricing__item-opacity">
+                                <i class="ri-close-circle-line"></i> No personal Trainer
+                            </li>
+                            <li class="pricing__item pricing__item-opacity">
+                                <i class="ri-close-circle-line"></i> No guest passes
+                            </li>
+                        </ul>
+
+                        <a href="#" class="button button__flex pricing__button">
+                            Purchase Now <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+
+                    <article class="pricing__card pricing__card-active">
+                        <header class="pricing__header">
+                            <div class="pricing__shape">
+                                <img src="static/img/pricing2.png" alt="pricing image" class="pricing__img">
+                            </div>
+                            <h1 class="pricing__title">PREMIUM PACKAGE</h1>
+                            <h2 class="pricing__number">RS 4,000</h2>
+                        </header>
+
+                        <ul class="pricing__list">
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> Access to gym equipment (cardio & weights)
+                            </li>
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line"></i> Locker room & shower access
+                            </li>
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line"></i> Access during peak hours
+                            </li>
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> 10% discount on gym products/services
+                            </li>
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line"></i> 1 guest pass per month
+                            </li>
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> 5 Days In A Week
+                            </li>
+                            </li>
+                            <li class="pricing__item pricing__item-opacity">
+                                <i class="ri-close-circle-line "></i> No personal Trainer
+                            </li>
+                        </ul>
+
+                        <a href="#" class="button button__flex pricing__button">
+                            Purchase Now <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+
+                    <article class="pricing__card">
+                        <header class="pricing__header">
+                            <div class="pricing__shape">
+                                <img src="static/img/pricing3.png" alt="pricing image" class="pricing__img">
+                            </div>
+                            <h1 class="pricing__title">DIAMOND PACKAGE</h1>
+                            <h2 class="pricing__number">RS 8,000</h2>
+                        </header>
+
+                        <ul class="pricing__list">
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line "></i> Personal trainer access
+                            </li>
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> Access to gym equipment (cardio & weights)
+                            </li>
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line"></i> Locker room & premium changing area
+                            </li>
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line"></i> Priority booking for sessions/trainers
+                            </li>
+                            <li class="pricing__item">
+                                <i class="ri-checkbox-circle-line"></i> 20% discount on gym products/services
+                            </li>
+                            <li class="pricing__item ">
+                                <i class="ri-checkbox-circle-line"></i> 3 guest passes per month
+                            </li>
+                        </ul>
+
+                        <a href="#" class="button button__flex pricing__button">
+                            Purchase Now <i class="ri-arrow-right-line"></i>
+                        </a>
+                    </article>
+                </div>
+            </div>
+        </section>
+        <!--==================== CALCULATE ====================-->
+        <section class="calculate section">
+            <div class="calculate__container container grid">
+                <div class="calculate__content">
+                    <div class="section__titles">
+                        <h1 class="section__title-border">CALCULATE</h1>
+                        <h1 class="section__title">YOUR BMI</h1>
+                    </div>
+        
+                    <p class="calculate__description">
+                        The Body Mass Index (BMI) calculator calculates body mass index from your weight and height. 
+                        Know your health status to adjust your workout and diet.
+                    </p>
+        
+                    <form action="" class="calculate__form" id="calculate-form">
+                        <div class="calculate__box">
+                            <input type="number" placeholder="Height (cm)" class="calculate__input" id="calculate-cm">
+                            <label for="calculate-cm" class="calculate__label">cm</label>
+                        </div>
+                        <div class="calculate__box">
+                            <input type="number" placeholder="Weight (kg)" class="calculate__input" id="calculate-kg">
+                            <label for="calculate-kg" class="calculate__label">kg</label>
+                        </div>
+        
+                        <button type="submit" class="button button__flex">
+                            Calculate Now <i class="ri-arrow-right-line"></i>
+                        </button>
+                    </form>
+        
+                    <p class="calculate__message" id="calculate-message"></p>
+                </div>
+        
+                <img src="assets/img/calculate-img.png" alt="calculate image" class="calculate__img">
+            </div>
+        </section>
+
+
+
+
+        <!-- AUTH MODAL  login form-->
+        <div id="authModal" class="form-popup"
+            style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.8); z-index:1000;">
+            <div class="form-container"
+                style="max-width:400px; margin:5% auto; background:#000; padding:2rem; border-radius:10px; color:white;">
+                <h2 id="formTitle">Sign Up</h2>
+                <form id="authForm" onsubmit="return handleFormSubmit(event)">
+                    <input type="text" id="name" placeholder="Full Name" required
+                        style="margin: 10px 0; padding: 10px; width: 100%;" />
+                    <input type="tel" id="phone" placeholder="Phone Number" required
+                        style="margin: 10px 0; padding: 10px; width: 100%;" />
+                    <input type="email" id="email" placeholder="Email" required
+                        style="margin: 10px 0; padding: 10px; width: 100%;" />
+                    <input type="password" id="password" placeholder="Password" required
+                        style="margin: 10px 0; padding: 10px; width: 100%;" />
+                    <input type="date" id="dob" placeholder="Date of Birth" required
+                        style="margin: 10px 0; padding: 10px; width: 100%;" />
+                    <input type="submit" value="Sign Up"
+                        style="background:limegreen; color:black; padding: 10px; width: 100%; border:none; cursor:pointer;" />
+                    <p style="margin-top: 10px;">Already have an account? <a href="#" onclick="toggleForm('login')"
+                            style="color:limegreen;">Login</a></p>
+                </form>
+                <button onclick="closeAuthModal()"
+                    style="margin-top:10px; color:white; background:red; border:none; padding:10px; width:100%;">Close</button>
+            </div>
+        </div>
+
+        <!--========== SCROLL UP ==========-->
+        <a href="#" class="scrollup" id="scroll-up">
+            <i class="ri-arrow-up-line"></i>
+        </a>
+
+
+        <!--=============== SCROLLREVEAL ===============-->
+        <script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>
+
+        <!--=============== EMAIL JS ===============-->
+    
+
+        <!--=============== MAIN JS ===============-->
+        <script src="static\js\main.js"></script>
+
+        {% endblock %}
+</body>
+
+</html>
